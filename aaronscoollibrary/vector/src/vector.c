@@ -296,4 +296,47 @@ IteratorVTable *Vec_iter_reverse(Vec *self)
 //                                                          //
 //////////////////////////////////////////////////////////////
 
+typedef int8_t i8;
+typedef int16_t i16;
+typedef int32_t i32;
+typedef int64_t i64;
+typedef uint8_t u8;
+typedef uint16_t u16;
+typedef uint32_t u32;
+typedef uint64_t u64;
+typedef float f32;
+typedef double f64;
+
+#define VEC_TYPE_FACTORY(type) \
+    typedef struct Vec_STRUCT_##type \
+    { \
+        Vec vec; \
+    } Vec_##type; \
+
+#define VEC_FUNCTION_FACTORY(type) \
+Vec_##type *Vec_##type##_new() \
+{ \
+    return (Vec_##type *) Vec_new(); \
+} \
+bool Vec_##type##_push(Vec_##type *self, type item) \
+{ \
+    type *t = malloc(sizeof(type)); \
+    *t = item; \
+    return Vec_push((Vec *) self, t); \
+} \
+void Vec_##type##_delete(Vec_##type *self) \
+{ \
+    for_each(Vec_iter((Vec *) self), ^ void (void *item) \
+    { \
+        free(item); \
+    }); \
+    Vec_delete((Vec *) self); \
+}
+
+VEC_TYPE_FACTORY(i32);
+VEC_FUNCTION_FACTORY(i32);
+
+void foo()
+{
+}
 
