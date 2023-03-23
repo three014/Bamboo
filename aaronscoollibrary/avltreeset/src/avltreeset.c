@@ -258,144 +258,144 @@ bool AvlTreeSet_contains(const AvlTreeSet *self, const void *item)
 Option *_remove_node_from_tree(const AvlTreeSet *self, Vec *prev_node_ptrs, Option *target_val)
 {
     Option *__RETURN_VALUE__ = Option_of(NULL);
-    if (Option_is_some(target_val))
-    {
-        AvlNode *target_node = Option_get(target_val);
-
-        // Delete that node
-        if (!Option_is_some(target_node->left->avl_node) 
-                || !Option_is_some(target_node->right->avl_node))
-        {
-            if (Option_is_some(target_node->left->avl_node))
-            {
-                AvlNode *left_node = Option_take(target_node->left->avl_node);
-                AvlNode *to_delete = _replace_ptr((void **) &target_node, left_node); // Probably going to cause problems
-                Option_insert(__RETURN_VALUE__, to_delete->data);
-                _delete_node(to_delete);
-            }
-            else if (Option_is_some(target_node->right->avl_node))
-            {
-                AvlNode *right_node = Option_take(target_node->right->avl_node);
-                AvlNode *to_delete = _replace_ptr((void **) &target_node, right_node); // Probably going to cause problems
-                Option_insert(__RETURN_VALUE__, to_delete->data);
-                _delete_node(to_delete);
-            }
-            else
-            {
-                // Deleting with no children
-                Option *popped_node = Vec_pop(prev_node_ptrs);
-                if (Option_is_some(popped_node))
-                {
-                    AvlNode *parent_node = Option_get(popped_node);
-                    if (Option_is_some(parent_node->left->avl_node))
-                    {
-                        AvlNode *left_node_ref = Option_get(Option_as_ref(parent_node->left->avl_node));
-                        const Ordering ord = self->table->cmp(left_node_ref->data, target_node->data);
-                        if (ord == Equal)
-                        {
-                            AvlNode *to_delete = Option_take(parent_node->left->avl_node);
-                            Option_insert(__RETURN_VALUE__, to_delete->data);
-                            _delete_node(to_delete);
-
-                        }
-                        else
-                        {
-                            AvlNode *to_delete = Option_take(parent_node->right->avl_node);
-                            Option_insert(__RETURN_VALUE__, to_delete->data);
-                            _delete_node(to_delete);
-                        }
-                    }
-                    else
-                    {
-                        AvlNode *to_delete = Option_take(parent_node->right->avl_node);
-                        Option_insert(__RETURN_VALUE__, to_delete->data);
-                        _delete_node(to_delete);
-                    }
-
-                    AvlNode_update_height(parent_node);
-                    AvlNode_rebalance(parent_node);
-                }
-                else
-                {
-                    Option_delete(popped_node);
-                    AvlNode *to_delete = Option_take(self->root->avl_node);
-                    Option_insert(__RETURN_VALUE__, to_delete->data);
-                    _delete_node(to_delete);
-                }
-            }
-        }
-        else
-        {
-            // TODO: Two children deletion
-            AvlTree *right_tree = target_node->right;
-            Option *right_tree_as_ref_left = ((AvlNode *) Option_get(Option_as_ref(right_tree->avl_node)))->left->avl_node;
-
-            if (!Option_is_some(right_tree_as_ref_left))
-            {
-                AvlNode *right_node = Option_take(right_tree->avl_node);
-
-                void *inner_val = _replace_ptr(&target_node->data, right_node->data);
-                Option_insert(__RETURN_VALUE__, inner_val);
-                AvlNode *to_delete = Option_get(Option_replace(target_node->right->avl_node, Option_take(right_node->right->avl_node)));
-                _delete_node(to_delete);
-
-                AvlNode_update_height(target_node);
-                AvlNode_rebalance(target_node);
-
-                return __RETURN_VALUE__;
-            }
-            else
-            {
-                // 1. Starting with the right child of the target node
-                AvlTree *next_tree = right_tree;
-                // We also keep track of the parent nodes to update the height
-                Vec *inner_ptrs = Vec_new();
-
-                // 2. Keep moving the current node to the left child until it has none
-                while (Option_is_some(next_tree->avl_node))
-                {
-                    AvlNode *next_left_node = Option_get(Option_as_ref(next_tree->avl_node));
-                    if (Option_is_some(next_left_node->left->avl_node))
-                    {
-                        Vec_push(inner_ptrs, next_left_node);
-                    }
-                    next_tree = next_left_node->left;
-                }
-
-                // We don't use next_tree but instead the tracked nodes as basis
-                AvlNode *parent_left_node = Option_get(Vec_pop(inner_ptrs));
-                AvlNode *leftmost_node = Option_take(parent_left_node->left->avl_node);
-
-                // 3. Replace the target node value with the current node value
-                void *inner_val = _replace_ptr(&target_node->data, leftmost_node->data);
-                Option_insert(__RETURN_VALUE__, inner_val);
-                // 4. Replace the current node with the right child if it has
-                AvlNode *to_delete = Option_get(Option_replace(parent_left_node->left->avl_node, 
-                        Option_take(leftmost_node->right->avl_node)));
-                _delete_node(to_delete);
-
-                AvlNode_update_height(parent_left_node);
-                AvlNode_rebalance(parent_left_node);
-
-                Vec_delete(inner_ptrs);
-            }
-        }
-        
-        // Retrace the path and update them accordingly
-        for_each(Vec_iter_reverse(prev_node_ptrs), ^ void (void *item)
-        {
-            AvlNode *node = item;
-            AvlNode_update_height(node);
-            AvlNode_rebalance(node);
-        });
-
-        AvlNode_update_height(target_node);
-        AvlNode_rebalance(target_node);
-    }
-    else 
-    {
-        Option_delete(target_val);
-    }
+    // if (Option_is_some(target_val))
+    // {
+    //     AvlNode *target_node = Option_get(target_val);
+    //
+    //     // Delete that node
+    //     if (!Option_is_some(target_node->left->avl_node) 
+    //             || !Option_is_some(target_node->right->avl_node))
+    //     {
+    //         if (Option_is_some(target_node->left->avl_node))
+    //         {
+    //             AvlNode *left_node = Option_take(target_node->left->avl_node);
+    //             AvlNode *to_delete = _replace_ptr((void **) &target_node, left_node); // Probably going to cause problems (IT DID)
+    //             Option_insert(__RETURN_VALUE__, to_delete->data);
+    //             _delete_node(to_delete);
+    //         }
+    //         else if (Option_is_some(target_node->right->avl_node))
+    //         {
+    //             AvlNode *right_node = Option_take(target_node->right->avl_node);
+    //             AvlNode *to_delete = _replace_ptr((void **) &target_node, right_node); // Probably going to cause problems (SO DID THIS ONE) (PROBABLY)
+    //             Option_insert(__RETURN_VALUE__, to_delete->data);
+    //             _delete_node(to_delete);
+    //         }
+    //         else
+    //         {
+    //             // Deleting with no children
+    //             Option *popped_node = Vec_pop(prev_node_ptrs);
+    //             if (Option_is_some(popped_node))
+    //             {
+    //                 AvlNode *parent_node = Option_get(popped_node);
+    //                 if (Option_is_some(parent_node->left->avl_node))
+    //                 {
+    //                     AvlNode *left_node_ref = Option_get(Option_as_ref(parent_node->left->avl_node));
+    //                     const Ordering ord = self->table->cmp(left_node_ref->data, target_node->data);
+    //                     if (ord == Equal)
+    //                     {
+    //                         AvlNode *to_delete = Option_take(parent_node->left->avl_node);
+    //                         Option_insert(__RETURN_VALUE__, to_delete->data);
+    //                         _delete_node(to_delete);
+    //
+    //                     }
+    //                     else
+    //                     {
+    //                         AvlNode *to_delete = Option_take(parent_node->right->avl_node);
+    //                         Option_insert(__RETURN_VALUE__, to_delete->data);
+    //                         _delete_node(to_delete);
+    //                     }
+    //                 }
+    //                 else
+    //                 {
+    //                     AvlNode *to_delete = Option_take(parent_node->right->avl_node);
+    //                     Option_insert(__RETURN_VALUE__, to_delete->data);
+    //                     _delete_node(to_delete);
+    //                 }
+    //
+    //                 AvlNode_update_height(parent_node);
+    //                 AvlNode_rebalance(parent_node);
+    //             }
+    //             else
+    //             {
+    //                 Option_delete(popped_node);
+    //                 AvlNode *to_delete = Option_take(self->root->avl_node);
+    //                 Option_insert(__RETURN_VALUE__, to_delete->data);
+    //                 _delete_node(to_delete);
+    //             }
+    //         }
+    //     }
+    //     else
+    //     {
+    //         // TODO: Two children deletion
+    //         AvlTree *right_tree = target_node->right;
+    //         Option *right_tree_as_ref_left = ((AvlNode *) Option_get(Option_as_ref(right_tree->avl_node)))->left->avl_node;
+    //
+    //         if (!Option_is_some(right_tree_as_ref_left))
+    //         {
+    //             AvlNode *right_node = Option_take(right_tree->avl_node);
+    //
+    //             void *inner_val = _replace_ptr(&target_node->data, right_node->data);
+    //             Option_insert(__RETURN_VALUE__, inner_val);
+    //             AvlNode *to_delete = Option_get(Option_replace(target_node->right->avl_node, Option_take(right_node->right->avl_node)));
+    //             _delete_node(to_delete);
+    //
+    //             AvlNode_update_height(target_node);
+    //             AvlNode_rebalance(target_node);
+    //
+    //             return __RETURN_VALUE__;
+    //         }
+    //         else
+    //         {
+    //             // 1. Starting with the right child of the target node
+    //             AvlTree *next_tree = right_tree;
+    //             // We also keep track of the parent nodes to update the height
+    //             Vec *inner_ptrs = Vec_new();
+    //
+    //             // 2. Keep moving the current node to the left child until it has none
+    //             while (Option_is_some(next_tree->avl_node))
+    //             {
+    //                 AvlNode *next_left_node = Option_get(Option_as_ref(next_tree->avl_node));
+    //                 if (Option_is_some(next_left_node->left->avl_node))
+    //                 {
+    //                     Vec_push(inner_ptrs, next_left_node);
+    //                 }
+    //                 next_tree = next_left_node->left;
+    //             }
+    //
+    //             // We don't use next_tree but instead the tracked nodes as basis
+    //             AvlNode *parent_left_node = Option_get(Vec_pop(inner_ptrs));
+    //             AvlNode *leftmost_node = Option_take(parent_left_node->left->avl_node);
+    //
+    //             // 3. Replace the target node value with the current node value
+    //             void *inner_val = _replace_ptr(&target_node->data, leftmost_node->data);
+    //             Option_insert(__RETURN_VALUE__, inner_val);
+    //             // 4. Replace the current node with the right child if it has
+    //             AvlNode *to_delete = Option_get(Option_replace(parent_left_node->left->avl_node, 
+    //                     Option_take(leftmost_node->right->avl_node)));
+    //             _delete_node(to_delete);
+    //
+    //             AvlNode_update_height(parent_left_node);
+    //             AvlNode_rebalance(parent_left_node);
+    //
+    //             Vec_delete(inner_ptrs);
+    //         }
+    //     }
+    //     
+    //     // Retrace the path and update them accordingly
+    //     for_each(Vec_iter_reverse(prev_node_ptrs), ^ void (void *item)
+    //     {
+    //         AvlNode *node = item;
+    //         AvlNode_update_height(node);
+    //         AvlNode_rebalance(node);
+    //     });
+    //
+    //     AvlNode_update_height(target_node);
+    //     AvlNode_rebalance(target_node);
+    // }
+    // else 
+    // {
+    //     Option_delete(target_val);
+    // }
 
     return __RETURN_VALUE__;
 }
