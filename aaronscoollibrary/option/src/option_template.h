@@ -138,5 +138,27 @@ type Option_##type##_get_or(Option_##type *self, type default_value) \
         return default_value; \
     } \
 } \
+Option_##type *Option_##type##_map(Option_##type *self, Option_##type *(^map_func)(type item)) \
+{ \
+    if (Option_##type##_is_some(self)) \
+    { \
+        return (map_func(Option_##type##_get(self))); \
+    } \
+    else \
+    { \
+        return self; \
+    } \
+} \
+type Option_##type##_map_or(Option_##type *self, type default_val, type (^map_func)(type item)) \
+{ \
+    if (Option_##type##_is_some(self)) \
+    { \
+        return (map_func(Option_##type##_get(self))); \
+    } \
+    else \
+    { \
+        return default_val; \
+    } \
+} \
 
 #endif
