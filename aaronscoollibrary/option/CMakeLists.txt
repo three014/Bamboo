@@ -5,7 +5,6 @@ set(
     option_SOURCES 
     src/option.c
     src/option_i32.c
-    src/option_u32.c
 )
 
 add_library(

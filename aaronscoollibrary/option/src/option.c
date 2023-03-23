@@ -52,7 +52,7 @@ void Option_delete(Option *self)
     free(self);
 }
 
-Option *Option_as_ref(Option *self)
+Option *Option_clone(Option *self)
 {
     return Option_of(self->item);
 }
@@ -178,37 +178,63 @@ void *Option_map_or_else(Option *self, void *(^default_func)(), void *(^map_func
     }
 }
 
-#define OPTION_MAP_FN(option, def, fn) \
+#define OPTION_MAP_OR_FN(option, def, fn) \
     if (Option_is_some(option)) { \
         return (fn(Option_get(option))); \
     } else { \
         Option_delete(option); \
         return (default_val); \
     }
-
-void        *Option_map_or      (Option *self, void     *default_val,   void       *(^map_func)(void *item)) { OPTION_MAP_FN(self, default_val, map_func) }
-uint8_t     Option_map_or_u8    (Option *self, uint8_t  default_val,    uint8_t     (^map_func)(void *item)) { OPTION_MAP_FN(self, default_val, map_func) }
-uint16_t    Option_map_or_u16   (Option *self, uint16_t default_val,    uint16_t    (^map_func)(void *item)) { OPTION_MAP_FN(self, default_val, map_func) }
-uint32_t    Option_map_or_u32   (Option *self, uint32_t default_val,    uint32_t    (^map_func)(void *item)) { OPTION_MAP_FN(self, default_val, map_func) }
-uint64_t    Option_map_or_u64   (Option *self, uint64_t default_val,    uint64_t    (^map_func)(void *item)) { OPTION_MAP_FN(self, default_val, map_func) }
-int8_t      Option_map_or_i8    (Option *self, int8_t   default_val,    int8_t      (^map_func)(void *item)) { OPTION_MAP_FN(self, default_val, map_func) }
-int16_t     Option_map_or_i16   (Option *self, int16_t  default_val,    int16_t     (^map_func)(void *item)) { OPTION_MAP_FN(self, default_val, map_func) }
-int32_t     Option_map_or_i32   (Option *self, int32_t  default_val,    int32_t     (^map_func)(void *item)) { OPTION_MAP_FN(self, default_val, map_func) }
-int64_t     Option_map_or_i64   (Option *self, int64_t  default_val,    int64_t     (^map_func)(void *item)) { OPTION_MAP_FN(self, default_val, map_func) }
-size_t      Option_map_or_size  (Option *self, size_t   default_val,    size_t      (^map_func)(void *item)) { OPTION_MAP_FN(self, default_val, map_func) }
-float       Option_map_or_f32   (Option *self, float    default_val,    float       (^map_func)(void *item)) { OPTION_MAP_FN(self, default_val, map_func) }
-double      Option_map_or_f64   (Option *self, double   default_val,    double      (^map_func)(void *item)) { OPTION_MAP_FN(self, default_val, map_func) }
+#define OPTION_MAP_OR_ELSE_FN(option, def_fn, map_fn) \
+    if (Option_is_some(option)) { \
+        return (map_fn(Option_get(option))); \
+    } else { \
+        return (def_fn()); \
+    }
 
 
+void *Option_map_or(Option *self, void *default_val, void *(^map_func)(void *item)) { OPTION_MAP_OR_FN(self, default_val, map_func) }
+
+typedef int8_t i8;
+typedef int16_t i16;
+typedef int32_t i32;
+typedef int64_t i64;
+typedef uint8_t u8;
+typedef uint16_t u16;
+typedef uint32_t u32;
+typedef uint64_t u64;
+typedef size_t size;
+typedef float f32;
+typedef double f64;
 
 
+#define OPTION_MAP_OR_FACTORY(type) \
+type Option_map_or_##type (Option *self, type default_val, type (^map_fn)(void *item)) { OPTION_MAP_OR_FN(self, default_val, map_fn) }
 
-#define MAP_CLOSURE(new_type, curr_type, formal_arg_name, body) \
-    ^ new_type (curr_type formal_arg_name) { body }
+#define OPTION_MAP_OR_ELSE_FACTORY(type) \
+type Option_map_or_else_##type (Option *self, type (^default_fn)(), type (^map_fn)(void *item)) { OPTION_MAP_OR_ELSE_FN(self, default_fn, map_fn) }
 
+OPTION_MAP_OR_FACTORY(i8);
+OPTION_MAP_OR_FACTORY(i16);
+OPTION_MAP_OR_FACTORY(i32);
+OPTION_MAP_OR_FACTORY(i64);
+OPTION_MAP_OR_FACTORY(u8);
+OPTION_MAP_OR_FACTORY(u16);
+OPTION_MAP_OR_FACTORY(u32);
+OPTION_MAP_OR_FACTORY(u64);
+OPTION_MAP_OR_FACTORY(f32);
+OPTION_MAP_OR_FACTORY(f64);
+OPTION_MAP_OR_FACTORY(size);
 
-int bar() {
-    return MAP_CLOSURE(int, float, c, { 
-        return (int) c; 
-    })('g');
-}
+OPTION_MAP_OR_ELSE_FACTORY(i8);
+OPTION_MAP_OR_ELSE_FACTORY(i16);
+OPTION_MAP_OR_ELSE_FACTORY(i32);
+OPTION_MAP_OR_ELSE_FACTORY(i64);
+OPTION_MAP_OR_ELSE_FACTORY(u8);
+OPTION_MAP_OR_ELSE_FACTORY(u16);
+OPTION_MAP_OR_ELSE_FACTORY(u32);
+OPTION_MAP_OR_ELSE_FACTORY(u64);
+OPTION_MAP_OR_ELSE_FACTORY(f32);
+OPTION_MAP_OR_ELSE_FACTORY(f64);
+OPTION_MAP_OR_ELSE_FACTORY(size);
+

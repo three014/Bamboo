@@ -2,7 +2,7 @@
 #include "interface/interface_str.h"
 #include "interface/iterator.h"
 #include "vector.h"
-#include "munit/munit.h"
+#include "munit.h"
 
 #include <stdint.h>
 #include <stdio.h>
@@ -161,7 +161,7 @@ bool AvlTreeSet_insert(const AvlTreeSet *self, void *item)
     {
         // Take current node out of option to get a ref to it,
         // then put back into the option
-        AvlNode *curr_node = Option_get(Option_as_ref(curr_tree->avl_node));
+        AvlNode *curr_node = Option_get(Option_clone(curr_tree->avl_node));
 
         // Push node onto the stack
         Vec_push(prev_node_ptrs, curr_node);
@@ -225,7 +225,7 @@ bool AvlTreeSet_contains(const AvlTreeSet *self, const void *item)
     while (Option_is_some(curr_tree->avl_node))
     {
         // Get a ref to the current node
-        const AvlNode *curr_node = Option_get(Option_as_ref(curr_tree->avl_node));
+        const AvlNode *curr_node = Option_get(Option_clone(curr_tree->avl_node));
 
         // Compare data to the curr_node's data
         const Ordering ord = self->table->cmp(curr_node->data, item);
@@ -409,7 +409,7 @@ Option *AvlTreeSet_remove(const AvlTreeSet *self, const void *item)
 
     while (!Option_is_some(target_val) && Option_is_some(curr_tree->avl_node))
     {
-        AvlNode *curr_node = Option_get(Option_as_ref(curr_tree->avl_node));
+        AvlNode *curr_node = Option_get(Option_clone(curr_tree->avl_node));
         const Ordering ord = self->table->cmp(curr_node->data, item);
         switch (ord)
         {
@@ -468,7 +468,7 @@ bool AvlNode_rebalance(AvlNode *self)
     {
         case -2:
         {
-            AvlNode *right = Option_get(Option_as_ref(self->right->avl_node));
+            AvlNode *right = Option_get(Option_clone(self->right->avl_node));
             if (AvlNode_balance_factor(right) == 1)
             {
                 AvlNode_rotate_right(right);
@@ -478,7 +478,7 @@ bool AvlNode_rebalance(AvlNode *self)
         }
         case 2:
         {
-            AvlNode *left = Option_get(Option_as_ref(self->left->avl_node));
+            AvlNode *left = Option_get(Option_clone(self->left->avl_node));
             if (AvlNode_balance_factor(left) == -1)
             {
                 AvlNode_rotate_left(left);
@@ -495,14 +495,14 @@ bool AvlNode_rebalance(AvlNode *self)
 
 size_t AvlNode_left_height(const AvlNode *self) 
 {
-    return Option_map_or_size(Option_as_ref(self->left->avl_node), 0, ^ size_t (void *left_node) { 
+    return Option_map_or_size(Option_clone(self->left->avl_node), 0, ^ size_t (void *left_node) { 
         return ((AvlNode *) left_node)->height;
     });
 }
 
 size_t AvlNode_right_height(const AvlNode *self)
 {
-    return Option_map_or_size(Option_as_ref(self->right->avl_node), 0, ^ size_t (void *right_node) {
+    return Option_map_or_size(Option_clone(self->right->avl_node), 0, ^ size_t (void *right_node) {
         return ((AvlNode *) right_node)->height;
     });
 }
@@ -536,9 +536,9 @@ bool AvlNode_rotate_right(AvlNode *self)
 
     // Grab nodes
     AvlNode *d_node = self; // To not drive me crazy later
-    AvlNode *b_node = Option_get(Option_as_ref(d_node->left->avl_node));
+    AvlNode *b_node = Option_get(Option_clone(d_node->left->avl_node));
     Option *e_node_opt = d_node->right->avl_node; // Might not exist (probably doesn't, now that I think about it)
-    AvlNode *a_node = Option_get(Option_as_ref(b_node->left->avl_node));
+    AvlNode *a_node = Option_get(Option_clone(b_node->left->avl_node));
     Option *c_node_opt = b_node->right->avl_node; // Might not exist
 
     // Swap data from B and D
@@ -549,7 +549,7 @@ bool AvlNode_rotate_right(AvlNode *self)
                                                                    // so we need to delete it to not leak
     if (Option_is_some(e_node_opt))
     {
-        AvlNode *e_node = Option_get(Option_as_ref(e_node_opt));
+        AvlNode *e_node = Option_get(Option_clone(e_node_opt));
         Option_delete(Option_replace(b_node->right->avl_node, e_node));
     }
     else
@@ -558,7 +558,7 @@ bool AvlNode_rotate_right(AvlNode *self)
     } 
     if (Option_is_some(c_node_opt))
     {
-        AvlNode *c_node = Option_get(Option_as_ref(c_node_opt));
+        AvlNode *c_node = Option_get(Option_clone(c_node_opt));
         Option_delete(Option_replace(b_node->left->avl_node, c_node));
     }
     else
@@ -582,9 +582,9 @@ bool AvlNode_rotate_left(AvlNode *self)
 
     // Grab nodes
     AvlNode *d_node = self; // To not drive me crazy later
-    AvlNode *b_node = Option_get(Option_as_ref(d_node->right->avl_node));
+    AvlNode *b_node = Option_get(Option_clone(d_node->right->avl_node));
     Option *e_node_opt = d_node->left->avl_node; // Might not exist (probably doesn't, now that I think about it)
-    AvlNode *a_node = Option_get(Option_as_ref(b_node->right->avl_node));
+    AvlNode *a_node = Option_get(Option_clone(b_node->right->avl_node));
     Option *c_node_opt = b_node->left->avl_node; // Might not exist
 
     // Swap data from B and D
@@ -595,7 +595,7 @@ bool AvlNode_rotate_left(AvlNode *self)
                                                                     // so we need to delete it to not leak
     if (Option_is_some(e_node_opt))
     {
-        AvlNode *e_node = Option_get(Option_as_ref(e_node_opt));
+        AvlNode *e_node = Option_get(Option_clone(e_node_opt));
         Option_delete(Option_replace(b_node->left->avl_node, e_node));
     }
     else
@@ -604,7 +604,7 @@ bool AvlNode_rotate_left(AvlNode *self)
     }
     if (Option_is_some(c_node_opt))
     {
-        AvlNode *c_node = Option_get(Option_as_ref(c_node_opt));
+        AvlNode *c_node = Option_get(Option_clone(c_node_opt));
         Option_delete(Option_replace(b_node->right->avl_node, c_node));
     }
     else
@@ -627,7 +627,7 @@ Option *AvlTreeSetIter_next(void *self_as_void_ptr)
     AvlTreeSetIter *self = self_as_void_ptr;
     while (Option_is_some(self->curr_tree->avl_node))
     {
-        Option *as_ref = Option_as_ref(self->curr_tree->avl_node);
+        Option *as_ref = Option_clone(self->curr_tree->avl_node);
         AvlNode *curr_node = Option_get(as_ref);
         Vec_push(self->prev_nodes, curr_node);
         self->curr_tree = curr_node->left;

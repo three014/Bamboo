@@ -308,7 +308,7 @@ typedef float f32;
 typedef double f64;
 
 #define VEC_TYPE_FACTORY(type) \
-    typedef struct Vec_STRUCT_##type \
+    typedef struct __Vector_##type##_Struct \
     { \
         Vec vec; \
     } Vec_##type; \
@@ -333,10 +333,5 @@ void Vec_##type##_delete(Vec_##type *self) \
     Vec_delete((Vec *) self); \
 }
 
-VEC_TYPE_FACTORY(i32);
-VEC_FUNCTION_FACTORY(i32);
-
-void foo()
-{
-}
-
+VEC_TYPE_FACTORY(u32);
+VEC_FUNCTION_FACTORY(u32);

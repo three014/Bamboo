@@ -5,8 +5,10 @@
 #include "interface/iterator.h"
 
 #include <stdbool.h>
+#include <stdint.h>
 
 typedef struct __Vector_Struct Vec;
+typedef struct __Vector_u32_Struct Vec_u32;
 
 Vec                     *Vec_new();
 Vec                     *Vec_with_capacity(size_t capacity);
@@ -21,5 +23,12 @@ ConstructorVTable       *Vec_constr();
 /* Iterator Functions */
 IteratorVTable          *Vec_iter(Vec *self);
 IteratorVTable          *Vec_iter_reverse(Vec *self);
+
+
+
+/* u32 Vec */
+Vec_u32     *Vec_u32_new();
+bool        Vec_u32_push(Vec_u32 *self, uint32_t item);
+void        Vec_u32_delete(Vec_u32 *self);
 
 #endif
