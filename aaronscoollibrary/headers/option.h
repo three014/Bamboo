@@ -61,9 +61,11 @@ Option_i32      *Option_i32_replace(Option_i32 *self, int32_t item);
 int32_t         Option_i32_get(Option_i32 *self);
 int32_t         Option_i32_get_or(Option_i32 *self, int32_t default_value);
 int32_t         Option_i32_get_or_else(Option_i32 *self, int32_t (^default_func)());
+Option_i32      *Option_i32_map(Option_i32 *self, Option_i32 *(^map_func)(int32_t item));
+int32_t         Option_i32_map_or(Option_i32 *self, int32_t default_val, int32_t (^map_func)(int32_t item));
+int32_t         Option_i32_map_or_else(Option_i32 *self, int32_t (^default_func)(), int32_t (^map_func)(int32_t item));
 
 /* Not implemented yet */
-Option_i32      *Option_i32_map(Option_i32 *self, Option_i32 *(^map_func)(int32_t item));
 Option          *Option_i32_map_generic(Option_i32 *self, Option *(^map_func)(int32_t item));
 void            *Option_i32_map_or_else_generic(Option_i32 *self, void *(^default_func)(), void *(^map_func)(int32_t item));
 void            *Option_i32_map_or_generic(Option *self, void *default_val, void *(^map_func)(int32_t item));

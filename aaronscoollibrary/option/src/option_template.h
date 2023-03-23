@@ -160,5 +160,17 @@ type Option_##type##_map_or(Option_##type *self, type default_val, type (^map_fu
         return default_val; \
     } \
 } \
+type Option_##type##_map_or_else(Option_##type *self, type (^default_func)(), type (^map_func)(type item)) \
+{ \
+    if (Option_##type##_is_some(self)) \
+    { \
+        return (map_func(Option_##type##_get(self))); \
+    } \
+    else \
+    { \
+        Option_##type##_delete(self); \
+        return (default_func()); \
+    } \
+} \
 
 #endif
