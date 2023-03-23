@@ -7,8 +7,6 @@
 #include <stdbool.h>
 
 typedef struct __Vector_Struct Vec;
-typedef struct __Vector_i32_Struct Vec_i32;
-typedef struct __Vector_u32_Struct Vec_u32;
 
 Vec                     *Vec_new();
 Vec                     *Vec_with_capacity(size_t capacity);

@@ -2,6 +2,7 @@
 #include "interface/interface_str.h"
 #include "interface/iterator.h"
 #include "vector.h"
+#include "munit/munit.h"
 
 #include <stdint.h>
 #include <stdio.h>

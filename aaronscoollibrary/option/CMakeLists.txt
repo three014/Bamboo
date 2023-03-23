@@ -12,4 +12,7 @@ add_library(
     ${PROJECT_NAME} 
     ${option_SOURCES}
 )
-target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../headers)
+target_include_directories(${PROJECT_NAME} PUBLIC 
+    ${CMAKE_CURRENT_SOURCE_DIR}/../headers
+    ${CMAKE_CURRENT_SOURCE_DIR}/../munit
+)
