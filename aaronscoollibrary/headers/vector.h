@@ -1,7 +1,7 @@
 #ifndef __VECTOR_H
 #define __VECTOR_H
 
-#include "option.h"
+#include "option/option.h"
 #include "interface/iterator.h"
 
 #include <stdbool.h>

@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
  
-#include "option.h"
+#include "option/option.h"
 #include "vector.h"
 #include "interface/ordering.h"
 

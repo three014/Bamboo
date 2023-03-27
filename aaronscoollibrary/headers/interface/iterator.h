@@ -1,7 +1,7 @@
 #ifndef __ITERATOR_H
 #define __ITERATOR_H
 
-#include "option.h"
+#include "option/option.h"
 
 #include <stdlib.h>
 
@@ -20,9 +20,9 @@ typedef struct __Construct_Collection_VTable_Struct
     void (*delete_self)(struct __Construct_Collection_VTable_Struct *self);
 } ConstructorVTable;
 
-IteratorVTable *map_iter(IteratorVTable *iter_vtable, void *(^map_func)(void *item));
-void *collect(IteratorVTable *old_iter_vtable, ConstructorVTable *new_collection_constructor_vtable);
-void for_each_enumerate(IteratorVTable *iter_vtable, void (^consumer)(const size_t index, void *item));
-void for_each(IteratorVTable *iter_vtable, void (^consumer)(void *item));
+IteratorVTable *Iter_map(IteratorVTable *iter_vtable, void *(^map_func)(void *item));
+void *Iter_collect(IteratorVTable *old_iter_vtable, ConstructorVTable *new_collection_constructor_vtable);
+void Iter_for_each_enumerate(IteratorVTable *iter_vtable, void (^consumer)(const size_t index, void *item));
+void Iter_for_each(IteratorVTable *iter_vtable, void (^consumer)(void *item));
 
 #endif

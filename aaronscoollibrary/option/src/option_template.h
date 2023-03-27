@@ -171,6 +171,33 @@ type Option_##type##_map_or_else(Option_##type *self, type (^default_func)(), ty
         Option_##type##_delete(self); \
         return (default_func()); \
     } \
+}
+
+#define OPTION_TYPE_MAP_FUNCTION_FACTORY(main_type, map_type) \
+map_type Option_##main_type##_map_or_##map_type (Option_##main_type *self, map_type default_val, map_type (^map_func)(main_type item)) \
+{ \
+    if (Option_##main_type##_is_some(self)) \
+    { \
+        return (map_func(Option_##main_type##_get(self))); \
+    } \
+    else \
+    { \
+        Option_##main_type##_delete(self); \
+        return default_val; \
+    } \
 } \
+map_type Option_##main_type##_map_or_else_##map_type (Option_##main_type *self, map_type (^default_func)(), map_type (^map_func)(main_type item)) \
+{ \
+    if (Option_##main_type##_is_some(self)) \
+    { \
+        return (map_func(Option_##main_type##_get(self))); \
+    } \
+    else \
+    { \
+        Option_##main_type##_delete(self); \
+        return (default_func()); \
+    } \
+}
+
 
 #endif

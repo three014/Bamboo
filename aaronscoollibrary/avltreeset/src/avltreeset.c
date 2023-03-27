@@ -196,7 +196,7 @@ bool AvlTreeSet_insert(const AvlTreeSet *self, void *item)
 
     if (inserted)
     {
-        for_each(Vec_iter_reverse(prev_node_ptrs), ^ void (void *item) 
+        Iter_for_each(Vec_iter_reverse(prev_node_ptrs), ^ void (void *item) 
         {
             AvlNode *node = item;
             AvlNode_update_height(node);
@@ -554,7 +554,7 @@ bool AvlNode_rotate_right(AvlNode *self)
     }
     else
     {
-        Option_take(b_node->right->avl_node);
+        Option_delete(Option_take(b_node->right->avl_node));
     } 
     if (Option_is_some(c_node_opt))
     {
@@ -563,7 +563,7 @@ bool AvlNode_rotate_right(AvlNode *self)
     }
     else
     {
-        Option_take(b_node->left->avl_node);
+        Option_delete(Option_take(b_node->left->avl_node));
     }
     Option_delete(Option_replace(d_node->right->avl_node, b_node));
 
@@ -600,7 +600,7 @@ bool AvlNode_rotate_left(AvlNode *self)
     }
     else
     {
-        Option_take(b_node->left->avl_node);
+        Option_delete(Option_take(b_node->left->avl_node));
     }
     if (Option_is_some(c_node_opt))
     {
@@ -609,7 +609,7 @@ bool AvlNode_rotate_left(AvlNode *self)
     }
     else
     {
-        Option_take(b_node->right->avl_node);
+        Option_delete(Option_take(b_node->right->avl_node));
     }
     Option_delete(Option_replace(d_node->left->avl_node, b_node));
 

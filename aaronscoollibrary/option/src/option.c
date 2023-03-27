@@ -1,4 +1,4 @@
-#include "option.h"
+#include "option/option.h"
 #include <stdio.h>
 
 struct __Option_Struct
@@ -77,12 +77,12 @@ bool Option_is_some_and(Option *self, bool (^predicate)(void *item))
     return predicate(self->item);
 }
 
-void *Option_take(Option *self)
+Option *Option_take(Option *self)
 {
     void *ret = self->item;
     self->item = NULL;
     self->some = false;
-    return ret;
+    return Option_of(ret);
 }
 
 bool Option_insert(Option *self, void *item)

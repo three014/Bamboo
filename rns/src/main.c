@@ -46,7 +46,7 @@ void string_test() {
     Vec_push(str_vec, s);
     Vec_push(str_vec, g);
 
-    for_each(Vec_iter(str_vec), ^ void (void *item) {
+    Iter_for_each(Vec_iter(str_vec), ^ void (void *item) {
         char *str = item;
         printf("char *str = %p\n", str);
         printf("%s\n", str);
@@ -113,7 +113,7 @@ void vec_test() {
     Vec_push(test_vec, t2);
     Vec_push(test_vec, t3);
 
-    IteratorVTable *mapped_vec_iter = map_iter(Vec_iter(test_vec), ^ void *(void *item) {
+    IteratorVTable *mapped_vec_iter = Iter_map(Vec_iter(test_vec), ^ void *(void *item) {
         char *str = malloc(64);
         // char str[64];
         Test *test = item;
@@ -122,7 +122,7 @@ void vec_test() {
         return str;
     });
    
-    for_each(mapped_vec_iter, ^ void (void *item) {
+    Iter_for_each(mapped_vec_iter, ^ void (void *item) {
         char *str = item;
         printf("%s\n", str);
         free(str);
@@ -132,8 +132,8 @@ void vec_test() {
         .cmp = cmp_test,
     };
 
-    Vec *vec2 = collect(Vec_iter(test_vec), Vec_constr());
-    AvlTreeSet *tree = collect(Vec_iter(test_vec), AvlTreeSet_constr(&test_ord));
+    Vec *vec2 = Iter_collect(Vec_iter(test_vec), Vec_constr());
+    AvlTreeSet *tree = Iter_collect(Vec_iter(test_vec), AvlTreeSet_constr(&test_ord));
 
     
     AvlTreeSet_delete(&tree);
@@ -159,7 +159,7 @@ void avltree_test() {
     AvlTreeSet_insert(tree, x);
     AvlTreeSet_insert(tree, z);
 
-    for_each(AvlTreeSet_iter(tree), ^ void (void *item) {
+    Iter_for_each(AvlTreeSet_iter(tree), ^ void (void *item) {
         char *str = item;
         printf("%s\n", str);
     });
@@ -194,7 +194,7 @@ void avltree_test() {
 
     // AvlTreeSet_remove(tree, &a);
 
-    for_each_enumerate(AvlTreeSet_iter(tree), ^ void (const unsigned long index, void *item) {
+    Iter_for_each_enumerate(AvlTreeSet_iter(tree), ^ void (const unsigned long index, void *item) {
         printf("%lu, %d\n", index, *(int32_t *) item);
     });
 
@@ -212,7 +212,7 @@ void vec_test_again() {
         Vec_push(vec, tmp);
     }
 
-    for_each(Vec_iter(vec), ^ void (void *item) {
+    Iter_for_each(Vec_iter(vec), ^ void (void *item) {
         char *str = item;
         printf("%s\n", str);
     });

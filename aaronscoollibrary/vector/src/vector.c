@@ -1,6 +1,5 @@
 #include "vector.h"
 #include "interface/iterator.h"
-#include "option.h"
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -326,7 +325,7 @@ bool Vec_##type##_push(Vec_##type *self, type item) \
 } \
 void Vec_##type##_delete(Vec_##type *self) \
 { \
-    for_each(Vec_iter((Vec *) self), ^ void (void *item) \
+    Iter_for_each(Vec_iter((Vec *) self), ^ void (void *item) \
     { \
         free(item); \
     }); \

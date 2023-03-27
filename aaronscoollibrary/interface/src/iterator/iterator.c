@@ -1,5 +1,5 @@
 #include "interface/iterator.h"
-#include "option.h"
+#include "option/option.h"
 #include "vector.h"
 #include <stdio.h>
 #include <Block.h>
@@ -20,7 +20,7 @@ void _delete_table(IteratorVTable *table)
     table->delete_self(table);
 }
 
-void for_each_enumerate(IteratorVTable *iter_vtable, void (^consumer)(const unsigned long index, void *item))
+void Iter_for_each_enumerate(IteratorVTable *iter_vtable, void (^consumer)(const unsigned long index, void *item))
 {
     Option *option = _next_item(iter_vtable);
     unsigned long i = 0;
@@ -36,7 +36,7 @@ void for_each_enumerate(IteratorVTable *iter_vtable, void (^consumer)(const unsi
 }
 
 
-void for_each(IteratorVTable *iter_vtable, void (^consumer)(void *item))
+void Iter_for_each(IteratorVTable *iter_vtable, void (^consumer)(void *item))
 {
     Option *option = _next_item(iter_vtable);
     while (Option_is_some(option))
@@ -50,7 +50,7 @@ void for_each(IteratorVTable *iter_vtable, void (^consumer)(void *item))
     _delete_table(iter_vtable);
 }
 
-IteratorVTable *map_iter(IteratorVTable *iter_vtable, void *(^map_func)(void *item))
+IteratorVTable *Iter_map(IteratorVTable *iter_vtable, void *(^map_func)(void *item))
 {
     Option *(^next_item)(void *iterable) = iter_vtable->next;
     Option *(^map)(void *item) = ^ Option *(void *item) 
