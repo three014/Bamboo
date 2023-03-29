@@ -456,7 +456,7 @@ ConstructorVTable *AvlTreeSet_constr(OrderingVTable *ordering)
     ConstructorVTable *constr = malloc(sizeof *constr);
     constr->collection = tree;
     constr->Item_push = AvlTreeSetConstr_push;
-    constr->delete_self = AvlTreeSetConstr_delete;
+    constr->Self_delete = AvlTreeSetConstr_delete;
     return constr;
 }
 
@@ -678,15 +678,14 @@ void AvlTreeSetIterVTable_delete(IteratorVTable *self)
     free(self);
 }
 
-IteratorVTable *AvlTreeSet_iter(AvlTreeSet *self)
+IteratorVTable AvlTreeSet_iter(AvlTreeSet *self)
 {
-    IteratorVTable *table = malloc(sizeof *table);
-    table->iterable_object = AvlTreeSetIter_from(self);
-    table->next = ^ Option *(void *self_as_void_ptr) {
+    IteratorVTable table;
+    table.iterable_object = AvlTreeSetIter_from(self);
+    table.next = ^ Option *(void *self_as_void_ptr) {
         return AvlTreeSetIter_next_node_data(self_as_void_ptr);
     };
-    table->delete_iter = AvlTreeSetIter_delete;
-    table->delete_self = AvlTreeSetIterVTable_delete;
+    table.delete_iter = AvlTreeSetIter_delete;
     return table;
 }
 
@@ -698,7 +697,6 @@ IteratorVTable *AvlTreeSet_node_iter(AvlTreeSet *self)
         return AvlTreeSetIter_next(self_as_void_ptr);
     };
     table->delete_iter = AvlTreeSetIter_delete;
-    table->delete_self = AvlTreeSetIterVTable_delete;
     return table;
 }
 

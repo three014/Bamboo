@@ -23,6 +23,6 @@ bool                AvlTreeSet_insert(const AvlTreeSet *self, void *data);
 void                AvlTreeSet_delete(AvlTreeSet **self_ref);
 
 /* Iterator Functions */
-IteratorVTable *AvlTreeSet_iter(AvlTreeSet *self);
+IteratorVTable AvlTreeSet_iter(AvlTreeSet *self);
 
 #endif

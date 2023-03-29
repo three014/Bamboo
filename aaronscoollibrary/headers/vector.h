@@ -21,8 +21,8 @@ bool                    Vec_empty(Vec *self);
 ConstructorVTable       *Vec_constr();
 
 /* Iterator Functions */
-IteratorVTable          *Vec_iter(Vec *self);
-IteratorVTable          *Vec_iter_reverse(Vec *self);
+IteratorVTable          Vec_iter(Vec *self);
+IteratorVTable          Vec_iter_reverse(Vec *self);
 
 
 

@@ -195,7 +195,7 @@ ConstructorVTable *Vec_constr()
     Vec *vec = Vec_new();
     ConstructorVTable *constr = malloc(sizeof *constr);
     constr->collection = vec;
-    constr->delete_self = VecConstr_delete;
+    constr->Self_delete = VecConstr_delete;
     constr->Item_push = VecConstr_push;
     return constr;
 }
@@ -252,29 +252,27 @@ void VecVTable_delete(IteratorVTable *self)
     free(self);
 }
 
-IteratorVTable *Vec_iter(Vec *self)
+IteratorVTable Vec_iter(Vec *self)
 {
-    IteratorVTable *table = malloc(sizeof *table);
-    table->iterable_object = Vec_into_iter(self);
-    table->next = ^ Option *(void *self_as_void_ptr) 
+    IteratorVTable table;
+    table.iterable_object = Vec_into_iter(self);
+    table.next = ^ Option *(void *self_as_void_ptr) 
     { 
         return VecIter_next(self_as_void_ptr); 
     };
-    table->delete_iter = VecIter_delete;
-    table->delete_self = VecVTable_delete;
+    table.delete_iter = VecIter_delete;
     return table;
 }
 
-IteratorVTable *Vec_iter_reverse(Vec *self)
+IteratorVTable Vec_iter_reverse(Vec *self)
 {
-    IteratorVTable *table = malloc(sizeof *table);
-    table->iterable_object = Vec_into_iter(self);
-    table->next = ^ Option *(void *self_as_void_ptr) 
+    IteratorVTable table;
+    table.iterable_object = Vec_into_iter(self);
+    table.next = ^ Option *(void *self_as_void_ptr) 
     { 
         return VecIterRev_next(self_as_void_ptr); 
     };
-    table->delete_iter = VecIter_delete;
-    table->delete_self = VecVTable_delete;
+    table.delete_iter = VecIter_delete;
     return table;
 }
 

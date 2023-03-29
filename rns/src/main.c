@@ -113,7 +113,7 @@ void vec_test() {
     Vec_push(test_vec, t2);
     Vec_push(test_vec, t3);
 
-    IteratorVTable *mapped_vec_iter = Iter_map(Vec_iter(test_vec), ^ void *(void *item) {
+    IteratorVTable mapped_vec_iter = Iter_map(Vec_iter(test_vec), ^ void *(void *item) {
         char *str = malloc(64);
         // char str[64];
         Test *test = item;
