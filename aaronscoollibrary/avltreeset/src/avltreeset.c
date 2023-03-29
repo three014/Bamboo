@@ -1,4 +1,5 @@
 #include "avltreeset.h"
+#include "interface/interface_i32.h"
 #include "interface/interface_str.h"
 #include "interface/iterator.h"
 #include "vector.h"
@@ -68,6 +69,7 @@ typedef struct __AvlTreeSetIter_Struct
     // Format: Vec<*AvlNode<T>>
     Vec *prev_nodes;
     AvlTree *curr_tree;
+    AvlTreeSet *tree_set;
 } AvlTreeSetIter;
 
 AvlTree *AvlTree_new()
@@ -196,13 +198,12 @@ bool AvlTreeSet_insert(const AvlTreeSet *self, void *item)
 
     if (inserted)
     {
-        Iter_for_each(Vec_iter_reverse(prev_node_ptrs), ^ void (void *item) 
+        Iter_for_each(Vec_iter_reverse(prev_node_ptrs, true), ^ void (void *item) 
         {
             AvlNode *node = item;
             AvlNode_update_height(node);
             AvlNode_rebalance(node);
         });
-        Vec_delete(prev_node_ptrs);
         return true;
     }
     else
@@ -638,6 +639,7 @@ Option *AvlTreeSetIter_next(void *self_as_void_ptr)
         Option *pop = Vec_pop(self->prev_nodes);
         AvlNode *popped_node = Option_get(pop);
         self->curr_tree = popped_node->right;
+        // printf("Right before leaving AvlTreeSetIter_next: data = %p\n", popped_node->data);
         return Option_of(popped_node);
     }
     else
@@ -651,7 +653,9 @@ Option *AvlTreeSetIter_next_node_data(void *self_as_void_ptr)
     return Option_map(AvlTreeSetIter_next(self_as_void_ptr), 
             ^ Option *(void *node) 
     { 
-        return Option_of(((AvlNode *) node)->data); 
+        AvlNode *avl_node = node;
+        // printf("Inside closure of AvlTreeSetIter_next_node_data: data = %p\n", avl_node->data);
+        return Option_of(avl_node->data); 
     });
 }
 
@@ -660,25 +664,22 @@ void *AvlTreeSetIter_from(AvlTreeSet *self)
     AvlTreeSetIter *iter = malloc(sizeof *iter);
     iter->curr_tree = self->root;
     iter->prev_nodes = Vec_new();
+    iter->tree_set = self;
     return iter;
 }
 
-void AvlTreeSetIter_delete(void *self_as_void_ptr)
+void AvlTreeSetIter_delete(void *self_as_void_ptr, bool delete_collection)
 {
     AvlTreeSetIter *self = self_as_void_ptr;
     Vec_delete(self->prev_nodes);
+    if (delete_collection)
+    {
+        AvlTreeSet_delete(&self->tree_set);
+    }
     free(self);
 }
 
-void AvlTreeSetIterVTable_delete(IteratorVTable *self)
-{
-    self->iterable_object = NULL;
-    self->next = NULL;
-    self->delete_iter = NULL;
-    free(self);
-}
-
-IteratorVTable AvlTreeSet_iter(AvlTreeSet *self)
+IteratorVTable AvlTreeSet_iter(AvlTreeSet *self, bool delete_collection_after_iter)
 {
     IteratorVTable table;
     table.iterable_object = AvlTreeSetIter_from(self);
@@ -686,6 +687,7 @@ IteratorVTable AvlTreeSet_iter(AvlTreeSet *self)
         return AvlTreeSetIter_next_node_data(self_as_void_ptr);
     };
     table.delete_iter = AvlTreeSetIter_delete;
+    table.delete_collection_after_iter = delete_collection_after_iter;
     return table;
 }
 
@@ -700,3 +702,32 @@ IteratorVTable *AvlTreeSet_node_iter(AvlTreeSet *self)
     return table;
 }
 
+
+// ---- Set wrapper functions ---- //
+
+bool _contains(const void *set, const void *item) { return AvlTreeSet_contains(set, item); }
+IteratorVTable _iter(void *set, bool delete_collection_after_iter) 
+{ 
+    return AvlTreeSet_iter(set, delete_collection_after_iter); 
+}
+bool _push(void *set, void *item) { return AvlTreeSet_insert(set, item); }
+bool _empty(const void *set) { return AvlTreeSet_is_empty(set); }
+
+SetVTable AvlTreeSet_as_set(AvlTreeSet *self) 
+{
+    SetVTable set = {
+        .set = self,
+        .contains = _contains,
+        .iter = _iter,
+        .push = _push,
+        .empty = _empty,
+        .ord = self->table,
+        .difference_of = NULL,
+        .equal = NULL,
+        .intersection_of = NULL,
+        .pop = NULL,
+        .remove = NULL,
+        .union_of = NULL,
+    };
+    return set;
+}

@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
  
+#include "interface/set.h"
 #include "option/option.h"
 #include "vector.h"
 #include "interface/ordering.h"
@@ -21,8 +22,7 @@ bool                AvlTreeSet_contains(const AvlTreeSet *self, const void *item
 bool                AvlTreeSet_insert(const AvlTreeSet *self, void *data);
 //Option              *AvlTreeSet_remove(const AvlTreeSet *self, const void *item);
 void                AvlTreeSet_delete(AvlTreeSet **self_ref);
-
-/* Iterator Functions */
-IteratorVTable AvlTreeSet_iter(AvlTreeSet *self);
+IteratorVTable      AvlTreeSet_iter(AvlTreeSet *self, bool delete_collection_after_iter);
+SetVTable           AvlTreeSet_as_set(AvlTreeSet *self);
 
 #endif

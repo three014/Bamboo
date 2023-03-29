@@ -237,22 +237,18 @@ void *Vec_into_iter(void *self_as_void_ptr)
     return iter;
 }
 
-void VecIter_delete(void *self_as_void_ptr)
+void VecIter_delete(void *self_as_void_ptr, bool delete_collection)
 {
     VecIter *self = self_as_void_ptr;
+    if (delete_collection)
+    {
+        Vec_delete(self->vec);
+    }
     self->vec = NULL;
     free(self);
 }
 
-void VecVTable_delete(IteratorVTable *self)
-{
-    self->delete_iter = NULL;
-    self->next = NULL;
-    self->iterable_object = NULL;
-    free(self);
-}
-
-IteratorVTable Vec_iter(Vec *self)
+IteratorVTable Vec_iter(Vec *self, bool delete_collection_after_iter)
 {
     IteratorVTable table;
     table.iterable_object = Vec_into_iter(self);
@@ -261,10 +257,11 @@ IteratorVTable Vec_iter(Vec *self)
         return VecIter_next(self_as_void_ptr); 
     };
     table.delete_iter = VecIter_delete;
+    table.delete_collection_after_iter = delete_collection_after_iter;
     return table;
 }
 
-IteratorVTable Vec_iter_reverse(Vec *self)
+IteratorVTable Vec_iter_reverse(Vec *self, bool delete_collection_after_iter)
 {
     IteratorVTable table;
     table.iterable_object = Vec_into_iter(self);
@@ -273,17 +270,14 @@ IteratorVTable Vec_iter_reverse(Vec *self)
         return VecIterRev_next(self_as_void_ptr); 
     };
     table.delete_iter = VecIter_delete;
-    return table;
-}
+    table.delete_collection_after_iter = delete_collection_after_iter;
+    return table; 
+} 
 
-
-
-
-//////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////// 
 //                                                          //
 //  For convienience, we defined many versions of vector    //
-//  for various primative types.                            //
-//                                                          // 
+//  for various primative types.                            // 
 //  Each version is its own struct, only                    //
 //  holding the instance of the generic vector itself,      //
 //  so that the different versions of the vector can't      //
@@ -323,11 +317,10 @@ bool Vec_##type##_push(Vec_##type *self, type item) \
 } \
 void Vec_##type##_delete(Vec_##type *self) \
 { \
-    Iter_for_each(Vec_iter((Vec *) self), ^ void (void *item) \
+    Iter_for_each(Vec_iter((Vec *) self, true), ^ void (void *item) \
     { \
         free(item); \
     }); \
-    Vec_delete((Vec *) self); \
 }
 
 VEC_TYPE_FACTORY(u32);

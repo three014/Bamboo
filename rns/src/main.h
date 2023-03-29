@@ -6,6 +6,7 @@
 #include "interface/ordering.h"
 #include "avltreeset.h"
 #include "interface/interface_i32.h"
+#include "interface/set.h"
 
 
 #endif
