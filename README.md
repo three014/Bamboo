@@ -48,9 +48,61 @@ The executable will be located at {bamboo_source_folder}/build/rns/rns*
 
 
 
-## How to config nodes:
+## How to config files:
 
 Nodes are configured in _json_ format, while the simulation is configured in a _csv_ format.
 
+- For the nodes, each node is an object '{}' containing a,
+  - Node "id" field 
+  - "queueDelay" field to give the node artificial traffic delay
+  - "directNeighbors" array field, where each array contains the 
+    node ids of the current node's directly connected nodes.
 
+This will create a directed graph of all the nodes in the system.
 
+Here is a sample node .json config file:
+```
+{
+  "id": 0,
+  "queueDelay": 4,
+  "directNeighbors": [1, 5]
+},
+{
+  "id": 1,
+  "queueDelay": 3,
+  "directNeighbors": [0, 2, 4]
+},
+{
+  "id": 2,
+  "queueDelay": 5,
+  "directNeighbors": [2, 3, 5]
+},
+{
+  "id": 3,
+  "queueDelay": 1,
+  "directNeighbors": [1]
+},
+{
+  "id": 4,
+  "queueDelay": 0,
+  "directNeighbors": [0, 3]
+},
+{
+  "id": 5,
+  "queueDelay": 2,
+  "directNeighbors": [0, 1, 3, 4]
+}
+```
+
+and here is a sample simulation .csv config file:
+```
+MSG,3,1,5
+MSG,5,2,3
+REP,7,315
+MSG,8,4,5
+MSG,8,0,3
+REP,9,803
+MSG,10,5,2
+REP,15
+END
+```
