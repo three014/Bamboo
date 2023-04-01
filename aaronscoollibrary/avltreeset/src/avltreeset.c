@@ -383,24 +383,22 @@ bool AvlTreeSet_equal(AvlTreeSet *self, AvlTreeSet *other)
     return !was_different;
 }
 
-void AvlTreeSetConstr_delete(ConstructorVTable *self)
-{
-    self->collection = NULL;
-    free(self);
-}
-
 bool AvlTreeSetConstr_push(void *tree_set, void *item)
 {
-    return AvlTreeSet_insert((AvlTreeSet *) tree_set, item);
+    return AvlTreeSet_insert(tree_set, item);
 }
 
-ConstructorVTable *AvlTreeSet_constr(OrderingVTable *ordering)
+static const ConstructorVTable constr_vtable = {
+    .push = AvlTreeSetConstr_push,
+};
+
+Constructor AvlTreeSet_constr(OrderingVTable *ordering)
 {
     AvlTreeSet *tree = AvlTreeSet_with_ordering(ordering);
-    ConstructorVTable *constr = malloc(sizeof *constr);
-    constr->collection = tree;
-    constr->Item_push = AvlTreeSetConstr_push;
-    constr->Self_delete = AvlTreeSetConstr_delete;
+    Constructor constr = {
+        .vtable = &constr_vtable,
+        .collection = tree,
+    };
     return constr;
 }
 

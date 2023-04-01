@@ -4,9 +4,13 @@
 #include "settings.h"
 #include "vector.h"
 #include "interface/ordering.h"
-#include "avltreeset.h"
 #include "interface/interface_i32.h"
 #include "interface/set.h"
+#include "avltreeset.h"
+#include "interface/interface_str.h"
+#include "interface/iterator.h"
 
+#include <math.h>
+#include <stdio.h>
 
 #endif

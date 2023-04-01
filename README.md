@@ -40,3 +40,17 @@ cd build && make
 ```
 
 The executable will be located at {bamboo_source_folder}/build/rns/rns*
+
+
+
+
+
+
+
+
+## How to config nodes:
+
+Nodes are configured in _json_ format, while the simulation is configured in a _csv_ format.
+
+
+

@@ -15,15 +15,19 @@ typedef struct __Iterator_VTable_Struct
 
 typedef struct __Construct_Collection_VTable_Struct
 {
-    bool (*Item_push)(void *collection, void *item_from_other_iterator);
-    void (*Self_delete)(struct __Construct_Collection_VTable_Struct *self);
-    void *collection;
+    bool (*push)(void *collection, void *item_from_other_iterator);
 } ConstructorVTable;
+
+typedef struct __Constructor_Struct
+{
+    const ConstructorVTable *vtable;
+    void *collection;
+} Constructor;
 
 IteratorVTable  Iter_map(IteratorVTable iter_vtable, void *(^map_func)(void *item));
 IteratorVTable  Iter_filter(IteratorVTable iter_vtable, bool (^predicate_func)(void *item));
 void            *Iter_collect(IteratorVTable old_iter_vtable, 
-                        ConstructorVTable *new_collection_constructor_vtable);
+                        Constructor new_collection_constructor);
 void            Iter_for_each_enumerate(IteratorVTable iter_vtable, 
                         void (^consumer)(const size_t index, void *item));
 void            Iter_for_each(IteratorVTable iter_vtable, void (^consumer)(void *item));

@@ -74,7 +74,7 @@ typedef struct __Set_VTable_Struct
 typedef struct __Set_Struct
 {
     // A pointer to the vtable.
-    SetVTable *vtable;
+    const SetVTable *vtable;
 
     // A pointer to the address itself. Take care to not lose access to this memory
     // reference, or to not use any of the operations of the set struct if this 

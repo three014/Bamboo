@@ -1,10 +1,4 @@
-#include <math.h>
-#include <stdio.h>
-#include "avltreeset.h"
-#include "interface/interface_str.h"
-#include "interface/iterator.h"
 #include "main.h"
-#include "vector.h"
 
 void vec_test();
 void string_test();
@@ -24,14 +18,15 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    // string_test();
+    string_test();
     printf("--------------------------------------------------------------------\n");
-    // vec_test();
+    vec_test();
     printf("--------------------------------------------------------------------\n");
     avltree_test();
     printf("--------------------------------------------------------------------\n");
     set_test();
-    // vec_test_again();
+    printf("--------------------------------------------------------------------\n");
+    vec_test_again();
     return 0;
 }
 
@@ -198,7 +193,8 @@ void avltree_test() {
 
     Iter_for_each_enumerate(AvlTreeSet_iter(tree, false), print);
 
-    Option_delete(AvlTreeSet_remove(tree, &f));
+    Option_delete(AvlTreeSet_remove(tree, &a));
+    Option_delete(AvlTreeSet_remove(tree, &b));
 
     Iter_for_each_enumerate(AvlTreeSet_iter(tree, true), print);
 }

@@ -188,19 +188,17 @@ bool VecConstr_push(void *vec, void *item)
     return Vec_push(vec, item);
 }
 
-void VecConstr_delete(ConstructorVTable *constr)
-{
-    constr->collection = NULL;
-    free(constr);
-}
+static const ConstructorVTable constr_vtable = {
+    .push = VecConstr_push,
+};
 
-ConstructorVTable *Vec_constr()
+Constructor Vec_constr()
 {
     Vec *vec = Vec_new();
-    ConstructorVTable *constr = malloc(sizeof *constr);
-    constr->collection = vec;
-    constr->Self_delete = VecConstr_delete;
-    constr->Item_push = VecConstr_push;
+    Constructor constr = {
+        .vtable = &constr_vtable,
+        .collection = vec,
+    };
     return constr;
 }
 
