@@ -9,8 +9,6 @@
 #include "vector.h"
 #include "interface/ordering.h"
 
-typedef struct __AvlNode_Struct AvlNode;
-typedef struct __AvlTree_Struct AvlTree;
 typedef struct __AvlTreeSet_Struct AvlTreeSet;
 
 /* TreeSet Functions */
@@ -20,9 +18,9 @@ AvlTreeSet          *AvlTreeSet_new();
 bool                AvlTreeSet_is_empty(const AvlTreeSet *self);
 bool                AvlTreeSet_contains(const AvlTreeSet *self, const void *item);
 bool                AvlTreeSet_insert(const AvlTreeSet *self, void *data);
-//Option              *AvlTreeSet_remove(const AvlTreeSet *self, const void *item);
-void                AvlTreeSet_delete(AvlTreeSet **self_ref);
+Option              *AvlTreeSet_remove(const AvlTreeSet *self, const void *item);
+void                AvlTreeSet_delete(AvlTreeSet **self);
 IteratorVTable      AvlTreeSet_iter(AvlTreeSet *self, bool delete_collection_after_iter);
-SetVTable           AvlTreeSet_as_set(AvlTreeSet *self);
+Set                 AvlTreeSet_as_set(AvlTreeSet *self);
 
 #endif

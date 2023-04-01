@@ -71,22 +71,26 @@ Vec *Vec_new()
     return Vec_with_capacity(DEFAULT_CAPACITY);
 }
 
-void Vec_delete(Vec *self)
+void Vec_delete(Vec **self)
 {
-    if (self == NULL)
+    if (*self == NULL)
         return;
 
-    free(self->arr);
-    free(self);
+    free((*self)->arr);
+    free(*self);
 }
 
 bool Vec_resize(Vec *self)
 {
     void *temp;
     size_t new_capacity;
-    if (self->capacity < 4)
+    if (self->capacity < 2)
     {
         new_capacity = 4;
+    }
+    else if (self->capacity == 3)
+    {
+        new_capacity = 8;
     }
     else
     {
@@ -242,7 +246,7 @@ void VecIter_delete(void *self_as_void_ptr, bool delete_collection)
     VecIter *self = self_as_void_ptr;
     if (delete_collection)
     {
-        Vec_delete(self->vec);
+        Vec_delete(&self->vec);
     }
     self->vec = NULL;
     free(self);

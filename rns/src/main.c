@@ -28,7 +28,7 @@ int main(int argc, char **argv) {
     printf("--------------------------------------------------------------------\n");
     // vec_test();
     printf("--------------------------------------------------------------------\n");
-    // avltree_test();
+    avltree_test();
     printf("--------------------------------------------------------------------\n");
     set_test();
     // vec_test_again();
@@ -55,7 +55,7 @@ void string_test() {
 
     });
     
-    Vec_delete(str_vec);
+    Vec_delete(&str_vec);
 }
 
 typedef struct guwah {
@@ -90,26 +90,28 @@ static Ordering cmp_test(const void *test1, const void *test2) {
     return Less;
 }
 
+void Test_free(Test **self) { free(*self); }
+
 void vec_test() {
     
-    Test *t = malloc(sizeof *t);
+    __attribute__((cleanup(Test_free))) Test *t = malloc(sizeof *t);
     t->x = 4;
     t->y = 'c';
     t->z = 3.4;
-    Test *t1 = malloc(sizeof *t1);
+    __attribute__((cleanup(Test_free))) Test *t1 = malloc(sizeof *t1);
     t1->x = 3;
     t1->y = 'c';
     t1->z = 6.432;
-    Test *t2 = malloc(sizeof *t2);
+    __attribute__((cleanup(Test_free))) Test *t2 = malloc(sizeof *t2);
     t2->x = 6;
     t2->y = 's';
     t2->z = 46.2;
-    Test *t3 = malloc(sizeof *t3);
+    __attribute__((cleanup(Test_free))) Test *t3 = malloc(sizeof *t3);
     t3->x = 5;
     t3->y = 'g';
     t3->z = 3.67;
 
-    Vec *test_vec = Vec_with_capacity(2);
+    __attribute__((cleanup(Vec_delete))) Vec *test_vec = Vec_with_capacity(2);
     Vec_push(test_vec, t);
     Vec_push(test_vec, t1);
     Vec_push(test_vec, t2);
@@ -139,13 +141,7 @@ void vec_test() {
 
     
     AvlTreeSet_delete(&tree);
-    Vec_delete(vec2);
-    Vec_delete(test_vec);
-
-    free(t);
-    free(t1);
-    free(t2);
-    free(t3);
+    Vec_delete(&vec2);
 
     Vec_u32 *v = Vec_u32_new();
     Vec_u32_push(v, 1);
@@ -167,6 +163,8 @@ void avltree_test() {
     });
 
     AvlTreeSet_delete(&tree);
+
+    printf("------------------------------------------------\n");
 
     tree = AvlTreeSet_with_ordering(&ordering_i32);
     int a = 1;
@@ -194,11 +192,15 @@ void avltree_test() {
         printf("Inserted 7!\n");
     }
 
-    // AvlTreeSet_remove(tree, &a);
-
-    Iter_for_each_enumerate(AvlTreeSet_iter(tree, true), ^ void (const unsigned long index, void *item) {
+    void (^print)(const uint64_t, void *) = ^ void (const uint64_t index, void *item) {
         printf("%lu, %d\n", index, *(int32_t *) item);
-    });
+    };
+
+    Iter_for_each_enumerate(AvlTreeSet_iter(tree, false), print);
+
+    Option_delete(AvlTreeSet_remove(tree, &f));
+
+    Iter_for_each_enumerate(AvlTreeSet_iter(tree, true), print);
 }
 
 
@@ -223,6 +225,23 @@ void vec_test_again() {
         goodbye = Vec_pop(vec);
     }
     Option_delete(goodbye);
-    Vec_delete(vec);
+    Vec_delete(&vec);
 
+}
+
+void set_test() {
+    AvlTreeSet *tree = AvlTreeSet_new();
+    Set set = AvlTreeSet_as_set(tree);
+
+    char *hello = "hello!";
+    set.vtable->push(set.set, hello);
+    char *whats = "what's going on?";
+    set.vtable->push(set.set, whats);
+    char *hmm = "hmmm that's kinda odd";
+    set.vtable->push(set.set, hmm);
+    Iter_for_each(set.vtable->iter(set.set, false), ^ void (void *item) {
+        char *str = item;
+        printf("%s\n", str);
+    });
+    set.vtable->delete(set.set);
 }

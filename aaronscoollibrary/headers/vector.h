@@ -12,7 +12,7 @@ typedef struct __Vector_u32_Struct Vec_u32;
 
 Vec                     *Vec_new();
 Vec                     *Vec_with_capacity(size_t capacity);
-void                    Vec_delete(Vec *self);
+void                    Vec_delete(Vec **self);
 unsigned long           Vec_length(Vec *self);
 bool                    Vec_push(Vec *self, void *item);
 Option                  *Vec_pop(Vec *self);
