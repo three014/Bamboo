@@ -1,4 +1,4 @@
-#include "vector.h"
+#include "vector/vector.h"
 #include "interface/iterator.h"
 
 #include <stdbool.h>
@@ -28,9 +28,9 @@
 
 struct __Vector_Struct
 {
-    void **arr;
     size_t capacity;
     size_t length;
+    void **arr;
 };
 
 typedef struct __Vector_Iterator
@@ -40,7 +40,6 @@ typedef struct __Vector_Iterator
 } VecIter;
 
 // Helper Functions
-bool    Vec_push_bytes_from_pointer(Vec *vec, void *item);
 void    *Vec_get_pointer(Vec *vec, size_t index);
 void    *Vec_pop_pointer(Vec *vec);
 bool    Vec_resize(Vec *vec);
@@ -300,30 +299,91 @@ typedef uint64_t u64;
 typedef float f32;
 typedef double f64;
 
-#define VEC_TYPE_FACTORY(type) \
-    typedef struct __Vector_##type##_Struct \
-    { \
-        Vec vec; \
-    } Vec_##type; \
+#define VEC_TYPE_FACTORY(T) \
+struct __Vector_##T##_Struct { \
+    size_t capacity; \
+    size_t length; \
+    T *arr; \
+};
 
-#define VEC_FUNCTION_FACTORY(type) \
-Vec_##type *Vec_##type##_new() \
-{ \
-    return (Vec_##type *) Vec_new(); \
+#define VEC_TYPE_FN_FACTORY(T) \
+bool    Vec_##T##_resize(Vec_##T *vec); \
+Vec_##T *Vec_##T##_with_capacity(size_t capacity) { \
+    Vec_##T *init = malloc(sizeof *init); \
+    if (!init) { \
+        return NULL; \
+    } \
+    init->arr = calloc(capacity, sizeof(T)); \
+    if (!init->arr) { \
+        return NULL; \
+    } \
+    init->capacity = capacity; \
+    init->length = 0; \
+    return init; \
 } \
-bool Vec_##type##_push(Vec_##type *self, type item) \
-{ \
-    type *t = malloc(sizeof(type)); \
-    *t = item; \
-    return Vec_push((Vec *) self, t); \
+Vec_##T *Vec_##T##_new() { \
+    return Vec_##T##_with_capacity(DEFAULT_CAPACITY); \
 } \
-void Vec_##type##_delete(Vec_##type *self) \
-{ \
-    Iter_for_each(Vec_iter((Vec *) self, true), ^ void (void *item) \
-    { \
-        free(item); \
-    }); \
-}
+void Vec_##T##_delete(Vec_##T **self) { \
+    if (*self == NULL) \
+        return; \
+    free((*self)->arr); \
+    free(*self); \
+} \
+bool Vec_##T##_resize(Vec_##T *self) { \
+    void *temp; \
+    size_t new_capacity; \
+    if (self->capacity < 2) { \
+        new_capacity = 4; \
+    } \
+    else if (self->capacity == 3) { \
+        new_capacity = 8; \
+    } \
+    else { \
+        new_capacity = self->capacity * RESIZE_CONSTANT; \
+    } \
+    temp = realloc(self->arr, new_capacity * sizeof(T)); \
+    if (temp == NULL) { \
+        return false; \
+    } \
+    self->arr = temp; \
+    self->capacity = new_capacity; \
+    return true; \
+} \
+bool Vec_##T##_push(Vec_##T *self, T item) { \
+    if (self->length >= self->capacity) { \
+        if (Vec_##T##_resize(self) == false) { \
+            return false; \
+        } \
+    } \
+    self->arr[self->length] = item; \
+    self->length++; \
+    return true; \
+} \
+Option_##T *Vec_##T##_get(Vec_##T *self, size_t index) { \
+    if (index < self->length) { \
+        return Option_##T##_of(self->arr[index]); \
+    } \
+    else { \
+        return Option_##T##_empty(); \
+    } \
+} \
+Option_##T *Vec_##T##_pop(Vec_##T *self) { \
+    if (self->length == 0) { \
+        return Option_##T##_empty(); \
+    } \
+    else { \
+        self->length--; \
+        return Option_##T##_of(self->arr[self->length]); \
+    } \
+} \
+size_t Vec_##T##_length(Vec_##T *self) { \
+    return self->length; \
+} \
+bool Vec_##T##_empty(Vec_##T *self) { \
+    return (Vec_##T##_length(self) == 0); \
+} \
 
-VEC_TYPE_FACTORY(u32);
-VEC_FUNCTION_FACTORY(u32);
+
+VEC_TYPE_FACTORY(i32);
+VEC_TYPE_FN_FACTORY(i32);

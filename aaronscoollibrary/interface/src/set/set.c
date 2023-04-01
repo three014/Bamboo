@@ -4,5 +4,4 @@
 #include "interface/iterator.h"
 #include "interface/ordering.h"
 #include "interface/set.h"
-#include "vector.h"
 

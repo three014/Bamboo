@@ -2,8 +2,7 @@
 #include "interface/interface_i32.h"
 #include "interface/interface_str.h"
 #include "interface/iterator.h"
-#include "vector.h"
-#include "munit.h"
+#include "vector/vector.h"
 
 #include <stdint.h>
 #include <stdio.h>

@@ -137,10 +137,6 @@ void vec_test() {
     
     AvlTreeSet_delete(&tree);
     Vec_delete(&vec2);
-
-    Vec_u32 *v = Vec_u32_new();
-    Vec_u32_push(v, 1);
-    Vec_u32_delete(v);
 }
 
 void avltree_test() {

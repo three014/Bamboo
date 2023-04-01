@@ -8,6 +8,7 @@
 typedef struct __Option_i32_Struct Option_i32;
 
 Option_i32          *Option_i32_of(int32_t item);
+Option_i32      *Option_i32_empty();
 void            Option_i32_delete(Option_i32 *self);
 Option_i32          *Option_i32_clone(Option_i32 *self);
 bool            Option_i32_is_some(Option_i32 *self);

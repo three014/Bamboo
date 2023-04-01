@@ -6,8 +6,8 @@
  
 #include "interface/set.h"
 #include "option/option.h"
-#include "vector.h"
 #include "interface/ordering.h"
+#include "interface/iterator.h"
 
 typedef struct __AvlTreeSet_Struct AvlTreeSet;
 
