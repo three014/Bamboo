@@ -59,69 +59,107 @@
 //       was actually the int value
 //     - At least I think that might be an issue? We'll have to check
 // When the user enters a key, they should have a nice way to enter the function:
-// - bool AvlTreeMap_insert(AvlTreeMap *self, MapKVPair kv);
-// We keep the key-value pair as a generic object, but 
+// - bool AvlTreeMap_insert(AvlTreeMap *self, MapInternalKV kv);
+// ISSUE: Compiler complains that MapInternalKV doesn't have a known size
+// FIX: Use a struct that contains an array of bytes, use function to convert key/value to
+//      byte representation, then pass this array into map data structure, where it'll convert 
+//      it back into the internal key/value structure
+//   POSSIBLE ISSUE: Byte ordering - Right now it works, but what if the byte ordering was reversed? Would it
+//                   still work? How could I test that?
+
+typedef struct __AvlTreeMap_Struct AvlTreeMap;
 
 typedef struct __Map_KeyValuePair_Struct {
     const void *key;
     const void *value;
-} MapKVPair;
+} MapExternalKV;
 
-typedef struct __AvlTreeMap_Struct AvlTreeMap;
-typedef struct __MapInternal_KeyValue_Struct MapInternalKV;
+typedef struct __MapExternal_Repr_Struct {
+    uint8_t hidden[18];
+} MapKV;
 
+MapKV MapKV_str_u32(const char *key, uint32_t value);
+MapKV MapKV_size_u32(size_t key, uint32_t value);
+MapKV MapKV_float_u32(float key, uint32_t value);
+MapKV MapKV_double_u32(double key, uint32_t value);
+MapKV MapKV_char_u32(char key, uint32_t value);
+MapKV MapKV_u8_u32(uint8_t key, uint32_t value);
+MapKV MapKV_u16_u32(uint16_t key, uint32_t value);
+MapKV MapKV_u32_u32(uint32_t key, uint32_t value);
+MapKV MapKV_u64_u32(uint64_t key, uint32_t value);
+MapKV MapKV_i8_u32(int8_t key, uint32_t value);
+MapKV MapKV_i16_u32(int16_t key, uint32_t value);
+MapKV MapKV_i32_u32(int32_t key, uint32_t value);
+MapKV MapKV_i64_u32(int64_t key, uint32_t value);
+MapKV MapKV_str_u64(const char *key, uint64_t value);
+MapKV MapKV_size_u64(size_t key, uint64_t value);
+MapKV MapKV_float_u64(float key, uint64_t value);
+MapKV MapKV_double_u64(double key, uint64_t value);
+MapKV MapKV_char_u64(char key, uint64_t value);
+MapKV MapKV_u8_u64(uint8_t key, uint64_t value);
+MapKV MapKV_u16_u64(uint16_t key, uint64_t value);
+MapKV MapKV_u32_u64(uint32_t key, uint64_t value);
+MapKV MapKV_u64_u64(uint64_t key, uint64_t value);
+MapKV MapKV_i8_u64(int8_t key, uint64_t value);
+MapKV MapKV_i16_u64(int16_t key, uint64_t value);
+MapKV MapKV_i32_u64(int32_t key, uint64_t value);
+MapKV MapKV_i64_u64(int64_t key, uint64_t value);
 
-MapInternalKV MapKV_size_i8(size_t key, int8_t value);
-MapInternalKV MapKV_float_i8(float key, int8_t value);
-MapInternalKV MapKV_double_i8(double key, int8_t value);
-MapInternalKV MapKV_char_i8(char key, int8_t value);
-MapInternalKV MapKV_u8_i8(uint8_t key, int8_t value);
-MapInternalKV MapKV_u16_i8(uint16_t key, int8_t value);
-MapInternalKV MapKV_u32_i8(uint32_t key, int8_t value);
-MapInternalKV MapKV_u64_i8(uint64_t key, int8_t value);
-MapInternalKV MapKV_i8_i8(int8_t key, int8_t value);
-MapInternalKV MapKV_i16_i8(int16_t key, int8_t value);
-MapInternalKV MapKV_i32_i8(int32_t key, int8_t value);
-MapInternalKV MapKV_i64_i8(int64_t key, int8_t value);
+MapKV MapKV_str_i8(const char *key, int8_t value);
+MapKV MapKV_size_i8(size_t key, int8_t value);
+MapKV MapKV_float_i8(float key, int8_t value);
+MapKV MapKV_double_i8(double key, int8_t value);
+MapKV MapKV_char_i8(char key, int8_t value);
+MapKV MapKV_u8_i8(uint8_t key, int8_t value);
+MapKV MapKV_u16_i8(uint16_t key, int8_t value);
+MapKV MapKV_u32_i8(uint32_t key, int8_t value);
+MapKV MapKV_u64_i8(uint64_t key, int8_t value);
+MapKV MapKV_i8_i8(int8_t key, int8_t value);
+MapKV MapKV_i16_i8(int16_t key, int8_t value);
+MapKV MapKV_i32_i8(int32_t key, int8_t value);
+MapKV MapKV_i64_i8(int64_t key, int8_t value);
 
-MapInternalKV MapKV_size_i16(size_t key, int16_t value);
-MapInternalKV MapKV_float_i16(float key, int16_t value);
-MapInternalKV MapKV_double_i16(double key, int16_t value);
-MapInternalKV MapKV_char_i16(char key, int16_t value);
-MapInternalKV MapKV_u8_i16(uint8_t key, int16_t value);
-MapInternalKV MapKV_u16_i16(uint16_t key, int16_t value);
-MapInternalKV MapKV_u32_i16(uint32_t key, int16_t value);
-MapInternalKV MapKV_u64_i16(uint64_t key, int16_t value);
-MapInternalKV MapKV_i8_i16(int8_t key, int16_t value);
-MapInternalKV MapKV_i16_i16(int16_t key, int16_t value);
-MapInternalKV MapKV_i32_i16(int32_t key, int16_t value);
-MapInternalKV MapKV_i64_i16(int64_t key, int16_t value);
+MapKV MapKV_str_i16(const char *key, int16_t value);
+MapKV MapKV_size_i16(size_t key, int16_t value);
+MapKV MapKV_float_i16(float key, int16_t value);
+MapKV MapKV_double_i16(double key, int16_t value);
+MapKV MapKV_char_i16(char key, int16_t value);
+MapKV MapKV_u8_i16(uint8_t key, int16_t value);
+MapKV MapKV_u16_i16(uint16_t key, int16_t value);
+MapKV MapKV_u32_i16(uint32_t key, int16_t value);
+MapKV MapKV_u64_i16(uint64_t key, int16_t value);
+MapKV MapKV_i8_i16(int8_t key, int16_t value);
+MapKV MapKV_i16_i16(int16_t key, int16_t value);
+MapKV MapKV_i32_i16(int32_t key, int16_t value);
+MapKV MapKV_i64_i16(int64_t key, int16_t value);
 
-MapInternalKV MapKV_size_i32(size_t key, int32_t value);
-MapInternalKV MapKV_float_i32(float key, int32_t value);
-MapInternalKV MapKV_double_i32(double key, int32_t value);
-MapInternalKV MapKV_char_i32(char key, int32_t value);
-MapInternalKV MapKV_u8_i32(uint8_t key, int32_t value);
-MapInternalKV MapKV_u16_i32(uint16_t key, int32_t value);
-MapInternalKV MapKV_u32_i32(uint32_t key, int32_t value);
-MapInternalKV MapKV_u64_i32(uint64_t key, int32_t value);
-MapInternalKV MapKV_i8_i32(int8_t key, int32_t value);
-MapInternalKV MapKV_i16_i32(int16_t key, int32_t value);
-MapInternalKV MapKV_i32_i32(int32_t key, int32_t value);
-MapInternalKV MapKV_i64_i32(int64_t key, int32_t value);
+MapKV MapKV_str_i32(const char *key, int32_t value);
+MapKV MapKV_size_i32(size_t key, int32_t value);
+MapKV MapKV_float_i32(float key, int32_t value);
+MapKV MapKV_double_i32(double key, int32_t value);
+MapKV MapKV_char_i32(char key, int32_t value);
+MapKV MapKV_u8_i32(uint8_t key, int32_t value);
+MapKV MapKV_u16_i32(uint16_t key, int32_t value);
+MapKV MapKV_u32_i32(uint32_t key, int32_t value);
+MapKV MapKV_u64_i32(uint64_t key, int32_t value);
+MapKV MapKV_i8_i32(int8_t key, int32_t value);
+MapKV MapKV_i16_i32(int16_t key, int32_t value);
+MapKV MapKV_i32_i32(int32_t key, int32_t value);
+MapKV MapKV_i64_i32(int64_t key, int32_t value);
 
-MapInternalKV MapKV_size_i64(size_t key, int64_t value);
-MapInternalKV MapKV_float_i64(float key, int64_t value);
-MapInternalKV MapKV_double_i64(double key, int64_t value);
-MapInternalKV MapKV_char_i64(char key, int64_t value);
-MapInternalKV MapKV_u8_i64(uint8_t key, int64_t value);
-MapInternalKV MapKV_u16_i64(uint16_t key, int64_t value);
-MapInternalKV MapKV_u32_i64(uint32_t key, int64_t value);
-MapInternalKV MapKV_u64_i64(uint64_t key, int64_t value);
-MapInternalKV MapKV_i8_i64(int8_t key, int64_t value);
-MapInternalKV MapKV_i16_i64(int16_t key, int64_t value);
-MapInternalKV MapKV_i32_i64(int32_t key, int64_t value);
-MapInternalKV MapKV_i64_i64(int64_t key, int64_t value);
+MapKV MapKV_str_i64(const char *key, int64_t value);
+MapKV MapKV_size_i64(size_t key, int64_t value);
+MapKV MapKV_float_i64(float key, int64_t value);
+MapKV MapKV_double_i64(double key, int64_t value);
+MapKV MapKV_char_i64(char key, int64_t value);
+MapKV MapKV_u8_i64(uint8_t key, int64_t value);
+MapKV MapKV_u16_i64(uint16_t key, int64_t value);
+MapKV MapKV_u32_i64(uint32_t key, int64_t value);
+MapKV MapKV_u64_i64(uint64_t key, int64_t value);
+MapKV MapKV_i8_i64(int8_t key, int64_t value);
+MapKV MapKV_i16_i64(int16_t key, int64_t value);
+MapKV MapKV_i32_i64(int32_t key, int64_t value);
+MapKV MapKV_i64_i64(int64_t key, int64_t value);
 
 
 
