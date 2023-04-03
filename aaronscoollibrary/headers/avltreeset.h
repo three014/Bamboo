@@ -1,5 +1,5 @@
-#ifndef __AVLTREE_H
-#define __AVLTREE_H
+#ifndef __AVLTREESET_H
+#define __AVLTREESET_H
 
 #include <stdlib.h>
 #include <stdbool.h>
