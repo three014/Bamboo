@@ -9,6 +9,7 @@
 typedef struct __Option_f32_Struct Option_f32;
 
 Option_f32      *Option_f32_of(float item);
+Option_f32      *Option_f32_empty();
 void            Option_f32_delete(Option_f32 *self);
 Option_f32      *Option_f32_clone(Option_f32 *self);
 bool            Option_f32_is_some(Option_f32 *self);

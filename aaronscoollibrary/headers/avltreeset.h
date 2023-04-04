@@ -12,8 +12,8 @@
 typedef struct __AvlTreeSet_Struct AvlTreeSet;
 
 /* TreeSet Functions */
-Constructor     AvlTreeSet_constr(OrderingVTable *ordering);
-AvlTreeSet      *AvlTreeSet_with_ordering(const OrderingVTable *table);
+Constructor     AvlTreeSet_constr(const OrderingVTable *ord);
+AvlTreeSet      *AvlTreeSet_with_ordering(const OrderingVTable *ord);
 AvlTreeSet      *AvlTreeSet_new();
 bool            AvlTreeSet_is_empty(const AvlTreeSet *self);
 bool            AvlTreeSet_contains(const AvlTreeSet *self, const void *item);

@@ -8,6 +8,7 @@
 #include "option/option.h"
 #include "interface/ordering.h"
 #include "interface/map.h"
+#include "object.h"
 
 
 // Goal: Use any type as the key, and any pointer type as the value
@@ -69,6 +70,20 @@
 //                   still work? How could I test that?
 
 typedef struct __AvlTreeMap_Struct AvlTreeMap;
+
+AvlTreeMap      *AvlTreeMap_with_ordering(const OrderingVTable *ordering);
+IteratorVTable  AvlTreeMap_iter(AvlTreeMap *self, bool delete_collection_after_iter);
+IteratorVTable  AvlTreeMap_iter_keys(AvlTreeMap *self, bool delete_collection_after_iter);
+IteratorVTable  AvlTreeMap_iter_values(AvlTreeMap *self, bool delete_collection_after_iter);
+bool            AvlTreeMap_insert(AvlTreeMap *self, ObjWrap key, ObjWrap value);
+Option_obj      *AvlTreeMap_view_obj(const AvlTreeMap *self, ObjWrap key);
+Option_obj      *AvlTreeMap_remove_obj(AvlTreeMap *self, ObjWrap key);
+Option_obj      *AvlTreeMap_replace_obj(AvlTreeMap *self, ObjWrap key, ObjWrap value);
+bool            AvlTreeMap_empty(const AvlTreeMap *self);
+bool            AvlTreeMap_contains_key(const AvlTreeMap *self, ObjWrap key);
+Map             AvlTreeMap_as_map(AvlTreeMap *self);
+void            AvlTreeMap_delete(AvlTreeMap **self);
+
 
 
 #endif // !__AVLTREEMAP_H
