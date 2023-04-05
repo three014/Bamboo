@@ -9,12 +9,16 @@
 #include "interface/ordering.h"
 #include "interface/iterator.h"
 
+// Format: AvlTreeSet<T *>
 typedef struct __AvlTreeSet_Struct AvlTreeSet;
 
 /* TreeSet Functions */
 Constructor     AvlTreeSet_constr(const OrderingVTable *ord);
-AvlTreeSet      *AvlTreeSet_with_ordering(const OrderingVTable *ord);
-AvlTreeSet      *AvlTreeSet_new();
+
+// Creates an AvlTreeSet with a specified ordering table. 
+// Table must take in the same type as the data in the set
+// or else it's undefined behavior.
+AvlTreeSet      *AvlTreeSet_new(const OrderingVTable *ord);
 bool            AvlTreeSet_is_empty(const AvlTreeSet *self);
 bool            AvlTreeSet_contains(const AvlTreeSet *self, const void *item);
 bool            AvlTreeSet_insert(const AvlTreeSet *self, void *data);

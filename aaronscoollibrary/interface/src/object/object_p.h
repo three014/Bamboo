@@ -13,6 +13,7 @@ typedef struct __Object_Internal_Struct {
 
 ObjectInternal  ObjWrap_to_internal(ObjWrap item);
 void            *ObjectInternal_to_view(const ObjectInternal *internal_item);
+ObjWrap         ObjectInternal_to_wrap(ObjectInternal internal_item);
 
 
 

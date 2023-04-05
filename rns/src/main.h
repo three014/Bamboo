@@ -7,6 +7,8 @@
 #include "interface/interface_i32.h"
 #include "interface/set.h"
 #include "avltreeset.h"
+#include "avltreemap.h"
+#include "object.h"
 #include "interface/interface_str.h"
 #include "interface/iterator.h"
 

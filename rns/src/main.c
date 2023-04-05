@@ -1,10 +1,12 @@
 #include "main.h"
+#include "object.h"
 
 void vec_test();
 void string_test();
 void avltree_test();
 void vec_test_again();
 void set_test();
+void avl_tree_map_test();
 
 int main(int argc, char **argv) {
     // process args
@@ -26,6 +28,7 @@ int main(int argc, char **argv) {
     printf("--------------------------------------------------------------------\n");
     set_test();
     printf("--------------------------------------------------------------------\n");
+    avl_tree_map_test();
     // vec_test_again();
     return 0;
 }
@@ -140,7 +143,7 @@ void vec_test() {
 }
 
 void avltree_test() {
-    AvlTreeSet *tree = AvlTreeSet_with_ordering(&ordering_str);
+    AvlTreeSet *tree = AvlTreeSet_new(&ordering_str);
     char *x = "Today is a good day for to have to have a good day";
     char *y = "Tomorrow is a gift";
     char *z = "That's why yesterday is a yesterday";
@@ -157,7 +160,7 @@ void avltree_test() {
 
     printf("------------------------------------------------\n");
 
-    tree = AvlTreeSet_with_ordering(&ordering_i32);
+    tree = AvlTreeSet_new(&ordering_i32);
     int a = 1;
     int b = 3;
     int c = 6;
@@ -222,7 +225,7 @@ void vec_test_again() {
 }
 
 void set_test() {
-    AvlTreeSet *tree = AvlTreeSet_new();
+    AvlTreeSet *tree = AvlTreeSet_new(&ordering_str);
     Set set = AvlTreeSet_as_set(tree);
 
     char *hello = "hello!";
@@ -236,4 +239,33 @@ void set_test() {
         printf("%s\n", str);
     });
     set.vtable->delete(set.set);
+}
+
+void avl_tree_map_test() {
+    AvlTreeMap *m = AvlTreeMap_new(&ordering_i32);
+    AvlTreeMap_insert(m, Obj_from_i32(5), Obj_from_char('a'));
+    AvlTreeMap_insert(m, Obj_from_i32(20), Obj_from_char('g'));
+    AvlTreeMap_insert(m, Obj_from_i32(20), Obj_from_char('f'));
+    AvlTreeMap_insert(m, Obj_from_i32(8), Obj_from_char('j'));
+    Iter_for_each(AvlTreeMap_iter(m, false), ^ void (void *item) {
+        MapViewKV *view = item;
+        printf("key: %d, val: %c\n", *(int *) view->key, *(char *) view->value);
+    });
+    Option_obj *a_opt = AvlTreeMap_remove_obj(m, Obj_from_i32(20));
+    if (Option_obj_is_some(a_opt)) {
+        char g = Obj_to_char(Option_obj_get(a_opt));
+        printf("%c\n", g);
+    }
+
+    Option_obj_delete(AvlTreeMap_remove_obj(m, Obj_from_i32(5)));
+    Option_obj_delete(AvlTreeMap_remove_obj(m, Obj_from_i32(8)));
+    if (AvlTreeMap_is_empty(m)) {
+        printf("treemap is empty\n");
+    }
+    Iter_for_each(AvlTreeMap_iter(m, false), ^ void (void *item) {
+        MapViewKV *view = item;
+        printf("key: %d, val: %c\n", *(int *) view->key, *(char *) view->value);
+    });
+
+    AvlTreeMap_delete(&m);
 }

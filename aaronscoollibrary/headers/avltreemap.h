@@ -69,9 +69,10 @@
 //   POSSIBLE ISSUE: Byte ordering - Right now it works, but what if the byte ordering was reversed? Would it
 //                   still work? How could I test that?
 
+// Format: AvlTreeMap<K, V>
 typedef struct __AvlTreeMap_Struct AvlTreeMap;
 
-AvlTreeMap      *AvlTreeMap_with_ordering(const OrderingVTable *ordering);
+AvlTreeMap      *AvlTreeMap_new(const OrderingVTable *ordering);
 IteratorVTable  AvlTreeMap_iter(AvlTreeMap *self, bool delete_collection_after_iter);
 IteratorVTable  AvlTreeMap_iter_keys(AvlTreeMap *self, bool delete_collection_after_iter);
 IteratorVTable  AvlTreeMap_iter_values(AvlTreeMap *self, bool delete_collection_after_iter);
@@ -79,7 +80,7 @@ bool            AvlTreeMap_insert(AvlTreeMap *self, ObjWrap key, ObjWrap value);
 Option_obj      *AvlTreeMap_view_obj(const AvlTreeMap *self, ObjWrap key);
 Option_obj      *AvlTreeMap_remove_obj(AvlTreeMap *self, ObjWrap key);
 Option_obj      *AvlTreeMap_replace_obj(AvlTreeMap *self, ObjWrap key, ObjWrap value);
-bool            AvlTreeMap_empty(const AvlTreeMap *self);
+bool            AvlTreeMap_is_empty(const AvlTreeMap *self);
 bool            AvlTreeMap_contains_key(const AvlTreeMap *self, ObjWrap key);
 Map             AvlTreeMap_as_map(AvlTreeMap *self);
 void            AvlTreeMap_delete(AvlTreeMap **self);

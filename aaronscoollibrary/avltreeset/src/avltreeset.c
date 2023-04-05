@@ -3,6 +3,7 @@
 #include "interface/interface_str.h"
 #include "interface/iterator.h"
 #include "vector/vector.h"
+#include "utils.h"
 
 #include <stdint.h>
 #include <stdio.h>
@@ -10,8 +11,6 @@
 
 
 // ---- Utils ---- //
-size_t max_size(size_t a, size_t b) { return (a > b) ? a : b; }
-uint64_t max_u64(uint64_t a, uint64_t b) { return (a > b) ? a : b; }
 void *_replace_ptr(void **dest, void *src) 
 { 
     void *ret = *dest;
@@ -25,22 +24,23 @@ void _swap_ptrs(void **ptr1, void **ptr2)
     *ptr2 = tmp;
 }
 
-typedef struct __AvlNode_Struct AvlNode;
-typedef struct __AvlTree_Struct AvlTree;
+typedef struct __AvlNodeT_Struct AvlNodeT;
+typedef struct __AvlTreeT_Struct AvlTreeT;
 
-AvlTree *AvlTree_new();
-AvlNode *AvlNode_new(void *data);
-void _delete_tree(AvlTree *tree);
-void _delete_node(AvlNode *node);
-size_t AvlNode_left_height(const AvlNode *self);
-size_t AvlNode_right_height(const AvlNode *self);
-int8_t AvlNode_balance_factor(const AvlNode *self);
-void AvlNode_update_height(AvlNode *self);
-bool AvlNode_rebalance(AvlNode *self);
-bool AvlNode_rotate_right(AvlNode *self);
-bool AvlNode_rotate_left(AvlNode *self);
+AvlTreeT *AvlTreeT_new();
+AvlNodeT *AvlNodeT_new(void *data);
+void _delete_treeT(AvlTreeT *tree);
+void _delete_nodeT(AvlNodeT *node);
+Option *_remove_nodeT_from_treeT(Vec *prev_node_trees, Option *target_tree_opt);
+size_t AvlNodeT_left_height(const AvlNodeT *self);
+size_t AvlNodeT_right_height(const AvlNodeT *self);
+int8_t AvlNodeT_balance_factor(const AvlNodeT *self);
+void AvlNodeT_update_height(AvlNodeT *self);
+bool AvlNodeT_rebalance(AvlNodeT *self);
+bool AvlNodeT_rotate_right(AvlNodeT *self);
+bool AvlNodeT_rotate_left(AvlNodeT *self);
  
-struct __AvlNode_Struct
+struct __AvlNodeT_Struct
 {
     // 'data' is a pointer to memory.
     // Item *item = /* malloc'd memory */;
@@ -48,11 +48,11 @@ struct __AvlNode_Struct
     // AvlTreeSet does NOT hold a copy of the data, only a ptr to it
     void *data;
     size_t height;
-    AvlTree *left;
-    AvlTree *right;
+    AvlTreeT *left;
+    AvlTreeT *right;
 };
 
-struct __AvlTree_Struct
+struct __AvlTreeT_Struct
 {
     // Format: Option<*AvlNode<T>>
     Option *avl_node;
@@ -60,7 +60,7 @@ struct __AvlTree_Struct
 
 struct __AvlTreeSet_Struct
 {
-    AvlTree *root;
+    AvlTreeT *root;
     const OrderingVTable *table;
 };
 
@@ -68,45 +68,40 @@ typedef struct __AvlTreeSetIter_Struct
 {
     // Format: Vec<*AvlNode<T>>
     Vec *prev_nodes;
-    AvlTree *curr_tree;
+    AvlTreeT *curr_tree;
     AvlTreeSet *tree_set;
 } AvlTreeSetIter;
 
-AvlTree *AvlTree_new()
+AvlTreeT *AvlTreeT_new()
 {
-    AvlTree *tree = malloc(sizeof *tree);
+    AvlTreeT *tree = malloc(sizeof *tree);
     tree->avl_node = Option_of(NULL);
     return tree;
 }
 
 
-AvlNode *AvlNode_new(void *data)
+AvlNodeT *AvlNodeT_new(void *data)
 {
-    AvlNode *node = malloc(sizeof *node);
+    AvlNodeT *node = malloc(sizeof *node);
     node->data = data;
-    node->left = AvlTree_new();
-    node->right = AvlTree_new();
+    node->left = AvlTreeT_new();
+    node->right = AvlTreeT_new();
     node->height = 1;
     return node;
 }
 
 // ---- AvlTreeSet ---- //
 
-AvlTreeSet *AvlTreeSet_new()
-{
-    return AvlTreeSet_with_ordering(&ordering_str);
-}
-
-AvlTreeSet *AvlTreeSet_with_ordering(const OrderingVTable *table)
+AvlTreeSet *AvlTreeSet_new(const OrderingVTable *table)
 {
     AvlTreeSet *set = malloc(sizeof *set);
-    set->root = AvlTree_new();
+    set->root = AvlTreeT_new();
     set->table = table;
 
     return set;
 }
 
-void _delete_node(AvlNode *node)
+void _delete_nodeT(AvlNodeT *node)
 {
     if (node == NULL)
     {
@@ -114,16 +109,16 @@ void _delete_node(AvlNode *node)
     }
     if (node->left)
     {
-        _delete_tree(node->left);
+        _delete_treeT(node->left);
     }
     if (node->right)
     {
-        _delete_tree(node->right);
+        _delete_treeT(node->right);
     }
     free(node);
 }
 
-void _delete_tree(AvlTree *tree)
+void _delete_treeT(AvlTreeT *tree)
 {
     if (tree == NULL)
     {
@@ -136,7 +131,7 @@ void _delete_tree(AvlTree *tree)
     }
     if (Option_is_some(tree->avl_node))
     {
-        _delete_node(Option_get(tree->avl_node));
+        _delete_nodeT(Option_get(tree->avl_node));
     }
     else 
     {
@@ -149,7 +144,7 @@ void AvlTreeSet_delete(AvlTreeSet **self)
 {
     if (*self)
     {
-        _delete_tree((*self)->root);
+        _delete_treeT((*self)->root);
         free(*self);
     }
 }
@@ -157,13 +152,13 @@ void AvlTreeSet_delete(AvlTreeSet **self)
 bool AvlTreeSet_insert(const AvlTreeSet *self, void *item)
 {
     Vec *prev_node_ptrs = Vec_new();
-    AvlTree *curr_tree = self->root;
+    AvlTreeT *curr_tree = self->root;
     
     while (Option_is_some(curr_tree->avl_node))
     {
         // Take current node out of option to get a ref to it,
         // then put back into the option
-        AvlNode *curr_node = Option_get(Option_clone(curr_tree->avl_node));
+        AvlNodeT *curr_node = Option_get(Option_clone(curr_tree->avl_node));
 
         // Push node onto the stack
         Vec_push(prev_node_ptrs, curr_node);
@@ -187,23 +182,23 @@ bool AvlTreeSet_insert(const AvlTreeSet *self, void *item)
                 return false;
         }
     }
-    AvlNode *to_insert = AvlNode_new(item);
+    AvlNodeT *to_insert = AvlNodeT_new(item);
     bool inserted = Option_insert(curr_tree->avl_node, to_insert);
 
     if (inserted)
     {
         Iter_for_each(Vec_iter_reverse(prev_node_ptrs, true), ^ void (void *item) 
         {
-            AvlNode *node = item;
-            AvlNode_update_height(node);
-            AvlNode_rebalance(node);
+            AvlNodeT *node = item;
+            AvlNodeT_update_height(node);
+            AvlNodeT_rebalance(node);
         });
         return true;
     }
     else
     {
         Vec_delete(&prev_node_ptrs);
-        _delete_node(to_insert);
+        _delete_nodeT(to_insert);
         return false;
     }
 }
@@ -215,12 +210,12 @@ bool AvlTreeSet_is_empty(const AvlTreeSet *self)
 
 bool AvlTreeSet_contains(const AvlTreeSet *self, const void *item)
 {
-    AvlTree *curr_tree = self->root;
+    AvlTreeT *curr_tree = self->root;
     
     while (Option_is_some(curr_tree->avl_node))
     {
         // Get a ref to the current node
-        const AvlNode *curr_node = Option_get(Option_clone(curr_tree->avl_node));
+        const AvlNodeT *curr_node = Option_get(Option_clone(curr_tree->avl_node));
 
         // Compare data to the curr_node's data
         const Ordering ord = self->table->cmp(curr_node->data, item);
@@ -245,51 +240,51 @@ bool AvlTreeSet_contains(const AvlTreeSet *self, const void *item)
     return false;
 }
 
-Option *_remove_node_from_tree(Vec *prev_node_trees, Option *target_tree_opt)
+Option *_remove_nodeT_from_treeT(Vec *prev_node_trees, Option *target_tree_opt)
 {
     if (Option_is_some(target_tree_opt))
     {
         Option *return_data = Option_of(NULL);
-        AvlTree *target_tree = Option_get(target_tree_opt);
-        AvlNode *target_node = Option_get(Option_clone(target_tree->avl_node));
+        AvlTreeT *target_tree = Option_get(target_tree_opt);
+        AvlNodeT *target_node = Option_get(Option_clone(target_tree->avl_node));
         if (!(Option_is_some(target_node->left->avl_node) || Option_is_some(target_node->right->avl_node)))
         {
             // Deleting a child node -- Best scenario, I love this one
             Option_delete(Option_take(target_tree->avl_node));
             Option_insert(return_data, target_node->data);
-            _delete_node(target_node);
+            _delete_nodeT(target_node);
         }
         else if (!Option_is_some(target_node->left->avl_node))
         {
             // Deleting a node with right child
-            AvlNode *right_node = Option_get(Option_take(target_node->right->avl_node));
+            AvlNodeT *right_node = Option_get(Option_take(target_node->right->avl_node));
             Option_delete(Option_replace(target_tree->avl_node, right_node));
-            _delete_node(target_node);
+            _delete_nodeT(target_node);
         }
         else if (!Option_is_some(target_node->right->avl_node))
         {
             // Deleting a node with left child
-            AvlNode *left_node = Option_get(Option_take(target_node->left->avl_node));
+            AvlNodeT *left_node = Option_get(Option_take(target_node->left->avl_node));
             Option_delete(Option_replace(target_tree->avl_node, left_node));
-            _delete_node(target_node);
+            _delete_nodeT(target_node);
         }
         else
         {
             // Deleting a node with both children -- Hardest one to code
             // Find largest node in the left subtree
             Vec *target_to_largest_left = Vec_with_capacity(target_node->height); // Holds AvlTrees
-            AvlTree *temp_tree = target_node->left;
+            AvlTreeT *temp_tree = target_node->left;
             while (Option_is_some(temp_tree->avl_node))
             {
                 Vec_push(target_to_largest_left, temp_tree);
-                AvlNode *temp_node = Option_get(Option_clone(temp_tree->avl_node));
+                AvlNodeT *temp_node = Option_get(Option_clone(temp_tree->avl_node));
                 temp_tree = temp_node->right;
             } // Largest node is at the top of the vec stack
 
             // temp_tree should be set to a null node, but we can't delete because it's
             // properly attached to another node, so we can just ignore temp_tree.
-            AvlTree *largest_tree_before_target = Option_get(Vec_pop(target_to_largest_left));
-            AvlNode *largest_node_before_target = Option_get(Option_clone(largest_tree_before_target->avl_node));
+            AvlTreeT *largest_tree_before_target = Option_get(Vec_pop(target_to_largest_left));
+            AvlNodeT *largest_node_before_target = Option_get(Option_clone(largest_tree_before_target->avl_node));
 
             // Can't have a right node, since that was the condition for stopping the earlier loop.
             // Can't have both nodes, since we can't have the right node.
@@ -299,7 +294,7 @@ Option *_remove_node_from_tree(Vec *prev_node_trees, Option *target_tree_opt)
                 // Replace the data only, to prevent having to reconnect the node leaves.
                 Option_insert(return_data, _replace_ptr(&target_node->data, largest_node_before_target->data));
                 Option_delete(Option_take(largest_tree_before_target->avl_node));
-                _delete_node(largest_node_before_target);
+                _delete_nodeT(largest_node_before_target);
             }
             else
             {                
@@ -307,26 +302,26 @@ Option *_remove_node_from_tree(Vec *prev_node_trees, Option *target_tree_opt)
                 Option_insert(return_data, _replace_ptr(&target_node->data, largest_node_before_target->data));
 
                 // Now replace the node we just use to replace the data, and replace that with its left node
-                AvlNode *left_node = Option_get(Option_clone(largest_node_before_target->left->avl_node));
+                AvlNodeT *left_node = Option_get(Option_clone(largest_node_before_target->left->avl_node));
                 Option_delete(Option_replace(largest_tree_before_target->avl_node, left_node));
-                _delete_node(largest_node_before_target);
+                _delete_nodeT(largest_node_before_target);
             }
 
             // Update node heights, rebalance
             Iter_for_each(Vec_iter_reverse(target_to_largest_left, true), ^ void (void *tree_ptr)
             {
-                AvlTree *tree = tree_ptr;
-                AvlNode *node = Option_get(Option_clone(tree->avl_node));
-                AvlNode_update_height(node);
-                AvlNode_rebalance(node);
+                AvlTreeT *tree = tree_ptr;
+                AvlNodeT *node = Option_get(Option_clone(tree->avl_node));
+                AvlNodeT_update_height(node);
+                AvlNodeT_rebalance(node);
             });
         }
         Iter_for_each(Vec_iter_reverse(prev_node_trees, false), ^ void (void *tree_ptr) 
         {
-            AvlTree *tree = tree_ptr;
-            AvlNode *node = Option_get(Option_clone(tree->avl_node));
-            AvlNode_update_height(node);
-            AvlNode_rebalance(node);
+            AvlTreeT *tree = tree_ptr;
+            AvlNodeT *node = Option_get(Option_clone(tree->avl_node));
+            AvlNodeT_update_height(node);
+            AvlNodeT_rebalance(node);
         });
 
         return return_data;
@@ -337,12 +332,12 @@ Option *_remove_node_from_tree(Vec *prev_node_trees, Option *target_tree_opt)
 Option *AvlTreeSet_remove(const AvlTreeSet *self, const void *item)
 {
     Vec *prev_node_trees = Vec_new(); // Stores AvlTrees, not AvlNodes
-    AvlTree *curr_tree = self->root;
+    AvlTreeT *curr_tree = self->root;
     Option *target_tree = Option_of(NULL);
 
     while (!Option_is_some(target_tree) && Option_is_some(curr_tree->avl_node))
     {
-        AvlNode *curr_node = Option_get(Option_clone(curr_tree->avl_node));
+        AvlNodeT *curr_node = Option_get(Option_clone(curr_tree->avl_node));
         const Ordering ord = self->table->cmp(curr_node->data, item);
         switch (ord)
         {
@@ -360,7 +355,7 @@ Option *AvlTreeSet_remove(const AvlTreeSet *self, const void *item)
         }
     }
 
-    Option *removed_item = _remove_node_from_tree(prev_node_trees, target_tree);
+    Option *removed_item = _remove_nodeT_from_treeT(prev_node_trees, target_tree);
     Vec_delete(&prev_node_trees);
 
     return removed_item;
@@ -391,9 +386,9 @@ static const ConstructorVTable constr_vtable = {
     .push = AvlTreeSetConstr_push,
 };
 
-Constructor AvlTreeSet_constr(OrderingVTable *ordering)
+Constructor AvlTreeSet_constr(const OrderingVTable *ordering)
 {
-    AvlTreeSet *tree = AvlTreeSet_with_ordering(ordering);
+    AvlTreeSet *tree = AvlTreeSet_new(ordering);
     Constructor constr = {
         .vtable = &constr_vtable,
         .collection = tree,
@@ -403,28 +398,28 @@ Constructor AvlTreeSet_constr(OrderingVTable *ordering)
 
 // ---- AvlNode ---- //
 
-bool AvlNode_rebalance(AvlNode *self)
+bool AvlNodeT_rebalance(AvlNodeT *self)
 {
-    switch (AvlNode_balance_factor(self))
+    switch (AvlNodeT_balance_factor(self))
     {
         case -2:
         {
-            AvlNode *right = Option_get(Option_clone(self->right->avl_node));
-            if (AvlNode_balance_factor(right) == 1)
+            AvlNodeT *right = Option_get(Option_clone(self->right->avl_node));
+            if (AvlNodeT_balance_factor(right) == 1)
             {
-                AvlNode_rotate_right(right);
+                AvlNodeT_rotate_right(right);
             }
-            AvlNode_rotate_left(self);
+            AvlNodeT_rotate_left(self);
             return true;
         }
         case 2:
         {
-            AvlNode *left = Option_get(Option_clone(self->left->avl_node));
-            if (AvlNode_balance_factor(left) == -1)
+            AvlNodeT *left = Option_get(Option_clone(self->left->avl_node));
+            if (AvlNodeT_balance_factor(left) == -1)
             {
-                AvlNode_rotate_left(left);
+                AvlNodeT_rotate_left(left);
             }
-            AvlNode_rotate_right(self);
+            AvlNodeT_rotate_right(self);
             return true;
         }
         default:
@@ -434,24 +429,24 @@ bool AvlNode_rebalance(AvlNode *self)
     }
 }
 
-size_t AvlNode_left_height(const AvlNode *self) 
+size_t AvlNodeT_left_height(const AvlNodeT *self) 
 {
     return Option_map_or_size(Option_clone(self->left->avl_node), 0, ^ size_t (void *left_node) { 
-        return ((AvlNode *) left_node)->height;
+        return ((AvlNodeT *) left_node)->height;
     });
 }
 
-size_t AvlNode_right_height(const AvlNode *self)
+size_t AvlNodeT_right_height(const AvlNodeT *self)
 {
     return Option_map_or_size(Option_clone(self->right->avl_node), 0, ^ size_t (void *right_node) {
-        return ((AvlNode *) right_node)->height;
+        return ((AvlNodeT *) right_node)->height;
     });
 }
 
-int8_t AvlNode_balance_factor(const AvlNode *self)
+int8_t AvlNodeT_balance_factor(const AvlNodeT *self)
 {
-    size_t left_height = AvlNode_left_height(self);
-    size_t right_height = AvlNode_right_height(self);
+    size_t left_height = AvlNodeT_left_height(self);
+    size_t right_height = AvlNodeT_right_height(self);
 
     if (left_height >= right_height)
     {
@@ -463,12 +458,12 @@ int8_t AvlNode_balance_factor(const AvlNode *self)
     }
 }
 
-void AvlNode_update_height(AvlNode *self)
+void AvlNodeT_update_height(AvlNodeT *self)
 {
-    self->height = 1 + max_size(AvlNode_left_height(self), AvlNode_right_height(self));
+    self->height = 1 + max_size(AvlNodeT_left_height(self), AvlNodeT_right_height(self));
 }
 
-bool AvlNode_rotate_right(AvlNode *self)
+bool AvlNodeT_rotate_right(AvlNodeT *self)
 {
     if (!Option_is_some(self->left->avl_node))
     {
@@ -476,10 +471,10 @@ bool AvlNode_rotate_right(AvlNode *self)
     }
 
     // Grab nodes
-    AvlNode *d_node = self; // To not drive me crazy later
-    AvlNode *b_node = Option_get(Option_clone(d_node->left->avl_node));
+    AvlNodeT *d_node = self; // To not drive me crazy later
+    AvlNodeT *b_node = Option_get(Option_clone(d_node->left->avl_node));
     Option *e_node_opt = d_node->right->avl_node; // Might not exist (probably doesn't, now that I think about it)
-    AvlNode *a_node = Option_get(Option_clone(b_node->left->avl_node));
+    AvlNodeT *a_node = Option_get(Option_clone(b_node->left->avl_node));
     Option *c_node_opt = b_node->right->avl_node; // Might not exist
 
     // Swap data from B and D
@@ -490,7 +485,7 @@ bool AvlNode_rotate_right(AvlNode *self)
                                                                    // so we need to delete it to not leak
     if (Option_is_some(e_node_opt))
     {
-        AvlNode *e_node = Option_get(Option_clone(e_node_opt));
+        AvlNodeT *e_node = Option_get(Option_clone(e_node_opt));
         Option_delete(Option_replace(b_node->right->avl_node, e_node));
     }
     else
@@ -499,7 +494,7 @@ bool AvlNode_rotate_right(AvlNode *self)
     } 
     if (Option_is_some(c_node_opt))
     {
-        AvlNode *c_node = Option_get(Option_clone(c_node_opt));
+        AvlNodeT *c_node = Option_get(Option_clone(c_node_opt));
         Option_delete(Option_replace(b_node->left->avl_node, c_node));
     }
     else
@@ -508,13 +503,13 @@ bool AvlNode_rotate_right(AvlNode *self)
     }
     Option_delete(Option_replace(d_node->right->avl_node, b_node));
 
-    AvlNode_update_height(b_node);
-    AvlNode_update_height(d_node);
+    AvlNodeT_update_height(b_node);
+    AvlNodeT_update_height(d_node);
 
     return true;
 }
 
-bool AvlNode_rotate_left(AvlNode *self)
+bool AvlNodeT_rotate_left(AvlNodeT *self)
 {
     if (!Option_is_some(self->right->avl_node))
     {
@@ -522,10 +517,10 @@ bool AvlNode_rotate_left(AvlNode *self)
     }
 
     // Grab nodes
-    AvlNode *d_node = self; // To not drive me crazy later
-    AvlNode *b_node = Option_get(Option_clone(d_node->right->avl_node));
+    AvlNodeT *d_node = self; // To not drive me crazy later
+    AvlNodeT *b_node = Option_get(Option_clone(d_node->right->avl_node));
     Option *e_node_opt = d_node->left->avl_node; // Might not exist (probably doesn't, now that I think about it)
-    AvlNode *a_node = Option_get(Option_clone(b_node->right->avl_node));
+    AvlNodeT *a_node = Option_get(Option_clone(b_node->right->avl_node));
     Option *c_node_opt = b_node->left->avl_node; // Might not exist
 
     // Swap data from B and D
@@ -536,7 +531,7 @@ bool AvlNode_rotate_left(AvlNode *self)
                                                                     // so we need to delete it to not leak
     if (Option_is_some(e_node_opt))
     {
-        AvlNode *e_node = Option_get(Option_clone(e_node_opt));
+        AvlNodeT *e_node = Option_get(Option_clone(e_node_opt));
         Option_delete(Option_replace(b_node->left->avl_node, e_node));
     }
     else
@@ -545,7 +540,7 @@ bool AvlNode_rotate_left(AvlNode *self)
     }
     if (Option_is_some(c_node_opt))
     {
-        AvlNode *c_node = Option_get(Option_clone(c_node_opt));
+        AvlNodeT *c_node = Option_get(Option_clone(c_node_opt));
         Option_delete(Option_replace(b_node->right->avl_node, c_node));
     }
     else
@@ -554,8 +549,8 @@ bool AvlNode_rotate_left(AvlNode *self)
     }
     Option_delete(Option_replace(d_node->left->avl_node, b_node));
 
-    AvlNode_update_height(b_node);
-    AvlNode_update_height(d_node);
+    AvlNodeT_update_height(b_node);
+    AvlNodeT_update_height(d_node);
 
     return true;
 }
@@ -569,7 +564,7 @@ Option *AvlTreeSetIter_next(void *self_as_void_ptr)
     while (Option_is_some(self->curr_tree->avl_node))
     {
         Option *as_ref = Option_clone(self->curr_tree->avl_node);
-        AvlNode *curr_node = Option_get(as_ref);
+        AvlNodeT *curr_node = Option_get(as_ref);
         Vec_push(self->prev_nodes, curr_node);
         self->curr_tree = curr_node->left;
     }
@@ -577,7 +572,7 @@ Option *AvlTreeSetIter_next(void *self_as_void_ptr)
     if (!Vec_empty(self->prev_nodes))
     {
         Option *pop = Vec_pop(self->prev_nodes);
-        AvlNode *popped_node = Option_get(pop);
+        AvlNodeT *popped_node = Option_get(pop);
         self->curr_tree = popped_node->right;
         // printf("Right before leaving AvlTreeSetIter_next: data = %p\n", popped_node->data);
         return Option_of(popped_node);
@@ -593,7 +588,7 @@ Option *AvlTreeSetIter_next_node_data(void *self_as_void_ptr)
     return Option_map(AvlTreeSetIter_next(self_as_void_ptr), 
             ^ Option *(void *node) 
     { 
-        AvlNode *avl_node = node;
+        AvlNodeT *avl_node = node;
         // printf("Inside closure of AvlTreeSetIter_next_node_data: data = %p\n", avl_node->data);
         return Option_of(avl_node->data); 
     });

@@ -6,6 +6,8 @@ add_library(
     src/iterator/iterator.c
     src/iterator/constructor.c
     src/ordering/ordering.c
+    src/map/map.c
+    src/object/object.c
     src/set/set.c
 )
 

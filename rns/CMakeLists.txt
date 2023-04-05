@@ -6,4 +6,4 @@ add_executable(
     src/main.c
     src/settings.c
 )
-target_link_libraries(${PROJECT_NAME} PUBLIC interface vector option avltreeset)
+target_link_libraries(${PROJECT_NAME} PUBLIC interface vector option avltreeset avltreemap)

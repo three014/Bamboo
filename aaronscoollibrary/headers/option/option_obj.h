@@ -7,7 +7,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 
-typedef struct __Option_Object_Struct Option_obj;
+typedef struct __Option_obj_Struct Option_obj;
 
 Option_obj  *Option_obj_of(ObjWrap item);
 Option_obj  *Option_obj_empty();
