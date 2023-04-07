@@ -161,7 +161,7 @@ bool AvlTreeSet_insert(const AvlTreeSet *self, void *item)
         AvlNodeT *curr_node = Option_get(Option_clone(curr_tree->avl_node));
 
         // Push node onto the stack
-        Vec_push(prev_node_ptrs, curr_node);
+        Vec_push(prev_node_ptrs, Obj_from_ptr(curr_node));
 
         // Compare data to the curr_node's data
         Ordering ord = self->table->cmp(curr_node->data, item);
@@ -276,14 +276,14 @@ Option *_remove_nodeT_from_treeT(Vec *prev_node_trees, Option *target_tree_opt)
             AvlTreeT *temp_tree = target_node->left;
             while (Option_is_some(temp_tree->avl_node))
             {
-                Vec_push(target_to_largest_left, temp_tree);
+                Vec_push(target_to_largest_left, Obj_from_ptr(temp_tree));
                 AvlNodeT *temp_node = Option_get(Option_clone(temp_tree->avl_node));
                 temp_tree = temp_node->right;
             } // Largest node is at the top of the vec stack
 
             // temp_tree should be set to a null node, but we can't delete because it's
             // properly attached to another node, so we can just ignore temp_tree.
-            AvlTreeT *largest_tree_before_target = Option_get(Vec_pop(target_to_largest_left));
+            AvlTreeT *largest_tree_before_target = Obj_to_ptr(Option_obj_get(Vec_pop(target_to_largest_left)));
             AvlNodeT *largest_node_before_target = Option_get(Option_clone(largest_tree_before_target->avl_node));
 
             // Can't have a right node, since that was the condition for stopping the earlier loop.
@@ -342,11 +342,11 @@ Option *AvlTreeSet_remove(const AvlTreeSet *self, const void *item)
         switch (ord)
         {
             case Less:
-                Vec_push(prev_node_trees, curr_tree);
+                Vec_push(prev_node_trees, Obj_from_ptr(curr_tree));
                 curr_tree = curr_node->right;
                 break;
             case Greater:
-                Vec_push(prev_node_trees, curr_tree);
+                Vec_push(prev_node_trees, Obj_from_ptr(curr_tree));
                 curr_tree = curr_node->left;
                 break;
             case Equal:
@@ -376,25 +376,25 @@ bool AvlTreeSet_equal(AvlTreeSet *self, AvlTreeSet *other)
 
     return !was_different;
 }
-
-bool AvlTreeSetConstr_push(void *tree_set, void *item)
-{
-    return AvlTreeSet_insert(tree_set, item);
-}
-
-static const ConstructorVTable constr_vtable = {
-    .push = AvlTreeSetConstr_push,
-};
-
-Constructor AvlTreeSet_constr(const OrderingVTable *ordering)
-{
-    AvlTreeSet *tree = AvlTreeSet_new(ordering);
-    Constructor constr = {
-        .vtable = &constr_vtable,
-        .collection = tree,
-    };
-    return constr;
-}
+//
+// bool AvlTreeSetConstr_push(void *tree_set, void *item)
+// {
+//     return AvlTreeSet_insert(tree_set, item);
+// }
+//
+// static const ConstructorVTable constr_vtable = {
+//     .push = AvlTreeSetConstr_push,
+// };
+//
+// Constructor AvlTreeSet_constr(const OrderingVTable *ordering)
+// {
+//     AvlTreeSet *tree = AvlTreeSet_new(ordering);
+//     Constructor constr = {
+//         .vtable = &constr_vtable,
+//         .collection = tree,
+//     };
+//     return constr;
+// }
 
 // ---- AvlNode ---- //
 
@@ -565,14 +565,14 @@ Option *AvlTreeSetIter_next(void *self_as_void_ptr)
     {
         Option *as_ref = Option_clone(self->curr_tree->avl_node);
         AvlNodeT *curr_node = Option_get(as_ref);
-        Vec_push(self->prev_nodes, curr_node);
+        Vec_push(self->prev_nodes, Obj_from_ptr(curr_node));
         self->curr_tree = curr_node->left;
     }
 
     if (!Vec_empty(self->prev_nodes))
     {
-        Option *pop = Vec_pop(self->prev_nodes);
-        AvlNodeT *popped_node = Option_get(pop);
+        Option_obj *pop = Vec_pop(self->prev_nodes);
+        AvlNodeT *popped_node = Obj_to_ptr(Option_obj_get(pop));
         self->curr_tree = popped_node->right;
         // printf("Right before leaving AvlTreeSetIter_next: data = %p\n", popped_node->data);
         return Option_of(popped_node);
@@ -640,28 +640,28 @@ IteratorVTable *AvlTreeSet_node_iter(AvlTreeSet *self)
 
 // ---- Set wrapper functions ---- //
 
-bool _contains(const void *set, const void *item) { return AvlTreeSet_contains(set, item); }
-IteratorVTable _iter(void *set, bool delete_collection_after_iter) 
+bool _avl_set_contains(const void *set, const void *item) { return AvlTreeSet_contains(set, item); }
+IteratorVTable _avl_set_iter(void *set, bool delete_collection_after_iter) 
 { 
     return AvlTreeSet_iter(set, delete_collection_after_iter); 
 }
-bool _push(void *set, void *item) { return AvlTreeSet_insert(set, item); }
-bool _empty(const void *set) { return AvlTreeSet_is_empty(set); }
-bool _equal(void *set, void *other) { return AvlTreeSet_equal(set, other); }
-void _delete(void *set) { AvlTreeSet_delete((AvlTreeSet **) &set); }
-Option *_remove(void *set, const void *item) { return AvlTreeSet_remove(set, item); }
+bool _avl_set_push(void *set, void *item) { return AvlTreeSet_insert(set, item); }
+bool _avl_set_empty(const void *set) { return AvlTreeSet_is_empty(set); }
+bool _avl_set_equal(void *set, void *other) { return AvlTreeSet_equal(set, other); }
+void _avl_set_delete(void *set) { AvlTreeSet_delete((AvlTreeSet **) &set); }
+Option *_avl_set_remove(void *set, const void *item) { return AvlTreeSet_remove(set, item); }
 
-static SetVTable Set_vtable = {
-    .contains = _contains,
-    .iter = _iter,
-    .push = _push,
-    .empty = _empty,
+static const SetVTable AvlTreeSet_set_vtable = {
+    .contains = _avl_set_contains,
+    .iter = _avl_set_iter,
+    .push = _avl_set_push,
+    .empty = _avl_set_empty,
     .difference_of = NULL,
-    .equal = _equal,
-    .delete = _delete,
+    .equal = _avl_set_equal,
+    .delete = _avl_set_delete,
     .intersection_of = NULL,
     .pop = NULL,
-    .remove = _remove,
+    .remove = _avl_set_remove,
     .union_of = NULL,
 };
 
@@ -669,7 +669,7 @@ Set AvlTreeSet_as_set(AvlTreeSet *self)
 {
     Set set = {
         .set = self,
-        .vtable = &Set_vtable,
+        .vtable = &AvlTreeSet_set_vtable,
     };
     return set;
 }

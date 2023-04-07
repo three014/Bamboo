@@ -69,7 +69,7 @@ AvlNodeKV *AvlNodeKV_new(ObjectInternal key, ObjectInternal value) {
     return node;
 }
 
-// ---- AvlTreeSet ---- //
+// ---- AvlTreeMap ---- //
 
 AvlTreeMap *AvlTreeMap_new(const OrderingVTable *table) {
     AvlTreeMap *set = malloc(sizeof *set);
@@ -117,7 +117,7 @@ void AvlTreeMap_delete(AvlTreeMap **self) {
 }
 
 bool AvlTreeMap_insert(AvlTreeMap *self, ObjWrap key, ObjWrap value) {
-    // Format: Vec<AvlNode<ObjectInternal<K>, ObjectInternal<V>> *>
+    // Format: Vec<ObjectInternal<AvlNode<ObjectInternal<K>, ObjectInternal<V>> *>>
     Vec *prev_node_ptrs = Vec_new();
     AvlTreeKV *curr_tree = self->root;
 
@@ -131,7 +131,7 @@ bool AvlTreeMap_insert(AvlTreeMap *self, ObjWrap key, ObjWrap value) {
         AvlNodeKV *curr_node = Option_get(Option_clone(curr_tree->avl_node));
 
         // Push node onto the stack
-        Vec_push(prev_node_ptrs, curr_node);
+        Vec_push(prev_node_ptrs, Obj_from_ptr(curr_node));
 
         // Grab key from current node 
         void *node_key_view = ObjectInternal_to_view(&curr_node->key);
@@ -172,6 +172,78 @@ bool AvlTreeMap_insert(AvlTreeMap *self, ObjWrap key, ObjWrap value) {
     }
 }
 
+Option_obj *AvlTreeMap_view_obj(const AvlTreeMap *self, ObjWrap key) {
+    AvlTreeKV *curr_tree = self->root;
+
+    ObjectInternal key_internal = ObjWrap_to_internal(key);
+    const void *key_view = ObjectInternal_to_view(&key_internal);
+
+    Option_obj *ret = Option_obj_empty();
+    
+    while (!Option_obj_is_some(ret) && Option_is_some(curr_tree->avl_node)) {
+        // Get a ref to the current node
+        const AvlNodeKV *curr_node = Option_get(Option_clone(curr_tree->avl_node));
+
+        // Grab key view from current node
+        const void *node_key_view = ObjectInternal_to_view(&curr_node->key);
+
+        // Compare data to the curr_node's data
+        const Ordering ord = self->ord->cmp(node_key_view, key_view);
+        switch (ord) {
+            case Less:
+                // Move curr tree to the right branch
+                curr_tree = curr_node->right;
+                break;
+            case Greater:
+                // Move curr tree to the left branch
+                curr_tree = curr_node->left;
+                break;
+            case Equal:
+                // Found item
+                Option_obj_insert(ret, ObjectInternal_to_wrap(curr_node->value));
+        }
+    }
+
+    return ret;
+}
+
+Option_obj *AvlTreeMap_replace_obj(AvlTreeMap *self, ObjWrap key, ObjWrap value) {
+    AvlTreeKV *curr_tree = self->root;
+
+    ObjectInternal value_internal = ObjWrap_to_internal(value);
+    ObjectInternal key_internal = ObjWrap_to_internal(key);
+    const void *key_view = ObjectInternal_to_view(&key_internal);
+
+    Option_obj *ret = Option_obj_empty();
+    
+    while (!Option_obj_is_some(ret) && Option_is_some(curr_tree->avl_node)) {
+        // Get a ref to the current node
+        AvlNodeKV *curr_node = Option_get(Option_clone(curr_tree->avl_node));
+
+        // Grab key view from current node
+        const void *node_key_view = ObjectInternal_to_view(&curr_node->key);
+
+        // Compare data to the curr_node's data
+        const Ordering ord = self->ord->cmp(node_key_view, key_view);
+        switch (ord) {
+            case Less:
+                // Move curr tree to the right branch
+                curr_tree = curr_node->right;
+                break;
+            case Greater:
+                // Move curr tree to the left branch
+                curr_tree = curr_node->left;
+                break;
+            case Equal:
+                // Found item
+                Option_obj_insert(ret, ObjectInternal_to_wrap(curr_node->value));
+                curr_node->value = value_internal;
+        }
+    }
+
+    return ret;
+}
+
 bool AvlTreeMap_is_empty(const AvlTreeMap *self) {
     return !Option_is_some(self->root->avl_node);
 }
@@ -201,7 +273,6 @@ bool AvlTreeMap_contains_key(const AvlTreeMap *self, const ObjWrap key) {
                 curr_tree = curr_node->left;
                 break;
             case Equal:
-            default:
                 // Found item
                 return true;
         }
@@ -248,14 +319,14 @@ Option_obj *_remove_node_from_tree(Vec *prev_tree_ptrs, Option *target_tree_opt)
             Vec *target_to_largest_left = Vec_with_capacity(target_node->height); 
             AvlTreeKV *temp_tree = target_node->left;
             while (Option_is_some(temp_tree->avl_node)) {
-                Vec_push(target_to_largest_left, temp_tree);
+                Vec_push(target_to_largest_left, Obj_from_ptr(temp_tree));
                 AvlNodeKV *temp_node = Option_get(Option_clone(temp_tree->avl_node));
                 temp_tree = temp_node->right;
             } // Largest node is at the top of the vec stack
 
             // temp_tree should be set to a null node, but we can't delete because it's
             // properly attached to another node, so we can just ignore temp_tree.
-            AvlTreeKV *largest_tree_before_target = Option_get(Vec_pop(target_to_largest_left));
+            AvlTreeKV *largest_tree_before_target = Obj_to_ptr(Option_obj_get(Vec_pop(target_to_largest_left)));
             AvlNodeKV *largest_node_before_target = Option_get(Option_clone(largest_tree_before_target->avl_node));
 
             // Can't have a right node, since that was the condition for stopping the earlier loop.
@@ -321,11 +392,11 @@ Option *_get_node_to_remove(const OrderingVTable *ord, Vec *prev_tree_ptrs, cons
         const Ordering ord_val = ord->cmp(curr_key_view, key_view);
         switch (ord_val) {
             case Less:
-                Vec_push(prev_tree_ptrs, curr_tree);
+                Vec_push(prev_tree_ptrs, Obj_from_ptr(curr_tree));
                 curr_tree = curr_node->right;
                 break;
             case Greater:
-                Vec_push(prev_tree_ptrs, curr_tree);
+                Vec_push(prev_tree_ptrs, Obj_from_ptr(curr_tree));
                 curr_tree = curr_node->left;
                 break;
             case Equal:
@@ -507,13 +578,13 @@ Option *AvlTreeMapIter_next(void *self_as_void_ptr) {
     while (Option_is_some(self->curr_tree->avl_node)) {
         Option *as_ref = Option_clone(self->curr_tree->avl_node);
         AvlNodeKV *curr_node = Option_get(as_ref);
-        Vec_push(self->prev_nodes, curr_node);
+        Vec_push(self->prev_nodes, Obj_from_ptr(curr_node));
         self->curr_tree = curr_node->left;
     }
 
     if (!Vec_empty(self->prev_nodes)) {
-        Option *pop = Vec_pop(self->prev_nodes);
-        AvlNodeKV *popped_node = Option_get(pop);
+        Option_obj *pop = Vec_pop(self->prev_nodes);
+        AvlNodeKV *popped_node = Obj_to_ptr(Option_obj_get(pop));
         self->curr_tree = popped_node->right;
         self->curr_view = (MapViewKV) {
             .key = ObjectInternal_to_view(&popped_node->key),
@@ -583,5 +654,39 @@ IteratorVTable AvlTreeMap_iter_values(AvlTreeMap *self, bool delete_collection_a
     table.delete_collection_after_iter = delete_collection_after_iter;
     return table;
 
+}
+
+
+// ---- Map Wrapper Functions ---- //
+
+IteratorVTable _avl_map_iter(void *map, bool delete_collection_after_iter) { return AvlTreeMap_iter(map, delete_collection_after_iter); }
+IteratorVTable _avl_map_iter_keys(void *map, bool delete_collection_after_iter) { return AvlTreeMap_iter_keys(map, delete_collection_after_iter); }
+IteratorVTable _avl_map_iter_values(void *map, bool delete_collection_after_iter) { return AvlTreeMap_iter_values(map, delete_collection_after_iter); }
+bool _avl_map_push(void *map, ObjWrap key, ObjWrap value) { return AvlTreeMap_insert(map, key, value); }
+Option_obj *_avl_map_view_obj(const void *map, ObjWrap key) { return AvlTreeMap_view_obj(map, key); }
+Option_obj *_avl_map_remove_obj(void *map, ObjWrap key) { return AvlTreeMap_remove_obj(map, key); }
+Option_obj *_avl_map_replace_obj(void *map, ObjWrap key, ObjWrap value) { return AvlTreeMap_replace_obj(map, key, value); }
+bool _avl_map_empty(const void *map) { return AvlTreeMap_is_empty(map); }
+bool _avl_map_contains_key(const void *map, ObjWrap key) { return AvlTreeMap_contains_key(map, key); }
+void _avl_map_delete_map(void *map) { return AvlTreeMap_delete((AvlTreeMap **) &map); }
+
+static const MapVTable AvlTreeMap_map_vtable = {
+    .contains_key = _avl_map_contains_key,
+    .delete_map = _avl_map_delete_map,
+    .empty = _avl_map_empty,
+    .iter = _avl_map_iter,
+    .iter_keys = _avl_map_iter_keys,
+    .iter_values = _avl_map_iter_values,
+    .push = _avl_map_push,
+    .remove_obj = _avl_map_remove_obj,
+    .replace_obj = _avl_map_replace_obj,
+    .view_obj = _avl_map_view_obj,
+};
+
+Map AvlTreeMap_as_map(AvlTreeMap *self) {
+    return (Map) {
+        .map = self,
+        .vtable = &AvlTreeMap_map_vtable,
+    };
 }
 

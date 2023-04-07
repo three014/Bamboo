@@ -42,9 +42,9 @@ void string_test() {
     printf("char *g = %p\n", g);
 
     Vec *str_vec = Vec_with_capacity(2);
-    Vec_push(str_vec, e);
-    Vec_push(str_vec, s);
-    Vec_push(str_vec, g);
+    Vec_push(str_vec, Obj_from_str(e));
+    Vec_push(str_vec, Obj_from_str(s));
+    Vec_push(str_vec, Obj_from_str(g));
 
     Iter_for_each(Vec_iter(str_vec, false), ^ void (void *item) {
         char *str = item;
@@ -110,10 +110,10 @@ void vec_test() {
     t3->z = 3.67;
 
     __attribute__((cleanup(Vec_delete))) Vec *test_vec = Vec_with_capacity(2);
-    Vec_push(test_vec, t);
-    Vec_push(test_vec, t1);
-    Vec_push(test_vec, t2);
-    Vec_push(test_vec, t3);
+    Vec_push(test_vec, Obj_from_ptr(t));
+    Vec_push(test_vec, Obj_from_ptr(t1));
+    Vec_push(test_vec, Obj_from_ptr(t2));
+    Vec_push(test_vec, Obj_from_ptr(t3));
 
     IteratorVTable mapped_vec_iter = Iter_map(Vec_iter(test_vec, false), ^ void *(void *item) {
         char *str = malloc(64);
@@ -130,16 +130,16 @@ void vec_test() {
         free(str);
     });
 
-    OrderingVTable test_ord = {
-        .cmp = cmp_test,
-    };
+    // OrderingVTable test_ord = {
+    //     .cmp = cmp_test,
+    // };
 
-    Vec *vec2 = Iter_collect(Vec_iter(test_vec, false), Vec_constr());
-    AvlTreeSet *tree = Iter_collect(Vec_iter(test_vec, false), AvlTreeSet_constr(&test_ord));
+    // Vec *vec2 = Iter_collect(Vec_iter(test_vec, false), Vec_constr());
+    // AvlTreeSet *tree = Iter_collect(Vec_iter(test_vec, false), AvlTreeSet_constr(&test_ord));
 
     
-    AvlTreeSet_delete(&tree);
-    Vec_delete(&vec2);
+    // AvlTreeSet_delete(&tree);
+    // Vec_delete(&vec2);
 }
 
 void avltree_test() {
@@ -206,7 +206,7 @@ void vec_test_again() {
         strcpy(tmp, "Hello!");
         tmp[18] = '\0';
         
-        Vec_push(vec, tmp);
+        Vec_push(vec, Obj_from_str(tmp));
     }
 
     Iter_for_each(Vec_iter(vec, false), ^ void (void *item) {
@@ -214,14 +214,13 @@ void vec_test_again() {
         printf("%s\n", str);
     });
 
-    Option *goodbye = Vec_pop(vec);
-    while (Option_is_some(goodbye)) {
-        free(Option_get(goodbye));
+    Option_obj *goodbye = Vec_pop(vec);
+    while (Option_obj_is_some(goodbye)) {
+        free(Obj_to_str(Option_obj_get(goodbye)));
         goodbye = Vec_pop(vec);
     }
-    Option_delete(goodbye);
+    Option_obj_delete(goodbye);
     Vec_delete(&vec);
-
 }
 
 void set_test() {

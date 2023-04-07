@@ -40,7 +40,7 @@ typedef struct __Map_KeyValuePair_Struct {
 //
 // void accept(MapKV pair);
 // void foo() {
-//     accept((MapKV){Obj_str("Hello!"), Obj_u16(34)});
+//     accept((MapKV){Obj_from_str("Hello!"), Obj_from_u16(34)});
 // }
 //
 // Kind of syntax-heavy, might be better to use:

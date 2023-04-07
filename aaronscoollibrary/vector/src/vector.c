@@ -1,4 +1,3 @@
-#include "vector/vector.h"
 #include "interface/iterator.h"
 
 #include <stdbool.h>
@@ -25,6 +24,9 @@
 
 #define DEFAULT_CAPACITY 8
 #define RESIZE_CONSTANT 2
+
+
+typedef struct __Vector_Struct Vec;
 
 struct __Vector_Struct
 {

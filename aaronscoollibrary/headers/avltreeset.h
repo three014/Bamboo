@@ -13,7 +13,7 @@
 typedef struct __AvlTreeSet_Struct AvlTreeSet;
 
 /* TreeSet Functions */
-Constructor     AvlTreeSet_constr(const OrderingVTable *ord);
+// Constructor     AvlTreeSet_constr(const OrderingVTable *ord);
 
 // Creates an AvlTreeSet with a specified ordering table. 
 // Table must take in the same type as the data in the set
