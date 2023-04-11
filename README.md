@@ -63,7 +63,7 @@ This will create a directed graph of all the nodes in the system.
 
 Here is a sample node .json config file:
 ```
-{
+[{
   "id": 0,
   "queueDelay": 4,
   "directNeighbors": [1, 5]
@@ -92,7 +92,7 @@ Here is a sample node .json config file:
   "id": 5,
   "queueDelay": 2,
   "directNeighbors": [0, 1, 3, 4]
-}
+}]
 ```
 Any json file that can be parsed through [jsonlint](https://jsonlint.com)
 should be parsable through RNS, but if any of the node fields are 
