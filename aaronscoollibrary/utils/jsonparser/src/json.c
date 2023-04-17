@@ -1,39 +1,40 @@
-#include "interface/iterator.h"
-#include "interface/map.h"
-#include "object.h"
-#include "../../../interface/src/object/object_p.h"
-#include "option/option_obj.h"
-#include "utils/json.h"
-#include "vector/vector.h"
-#include <string.h>
-
-#define BUFFER_SIZE 256
-#define OPEN_BRACE ('{')
-#define CLOSE_BRACE ('}')
-#define OPEN_BRACKET ('[')
-#define CLOSE_BRACKET (']')
-#define COLON (':')
+#include "json_p.h"
 
 
-typedef const char *JsonKey;
-
-struct __Json_Value_Struct {
-    ObjectInternal v;
-    enum JsonType {
-        NullVal,
-        BoolVal,
-        NumVal,
-        StrVal,
-        ArrVal,
-        ObjVal
-    } type;
-};
+Result *Json_from_str(const char *str) {
+    Result *ret = NULL;
+    char buffer[256] = {0};
 
 
-void Json_delete_obj(JsonValue *json_value);
-void Json_delete_structure(JsonValue *json_value);
+    return ret;
+}
 
-void Json_delete_structure(JsonValue *json_value) {
+
+
+JsonValue *JsonValue_new(enum JsonType type, ObjWrap value) {
+    JsonValue *ret = malloc(sizeof *ret);
+    ret->type = type;
+    ret->v = ObjWrap_to_internal(value);
+    return ret;
+}
+
+JsonValue *JsonValue_null() {
+    JsonValue *ret = malloc(sizeof *ret);
+    ret->type = NullVal;
+    return ret;
+}
+
+bool JsonValue_replace_null(JsonValue *json, enum JsonType type, ObjWrap value) {
+    bool replaced = false;
+    if (json->type == NullVal) {
+        json->type = type;
+        json->v = ObjWrap_to_internal(value);
+        replaced = true;
+    }
+    return replaced;
+}
+
+void JsonValue_delete_recur(JsonValue *json_value) {
     switch (json_value->type) {
         case StrVal:
             free(Obj_to_str(ObjectInternal_to_wrap(json_value->v)));
@@ -47,28 +48,28 @@ void Json_delete_structure(JsonValue *json_value) {
         case ArrVal: {
             Vec *v = Obj_to_ptr(ObjectInternal_to_wrap(json_value->v));
             Vec_deep_delete(v, ^ void (void *value) {
-                Json_delete_structure(value);
+                JsonValue_delete_recur(value);
             });
             break;
         }
         case ObjVal: {
-            Map *m = Obj_to_ptr(ObjectInternal_to_wrap(json_value->v));
+            Map_StrVal *m = Obj_to_ptr(ObjectInternal_to_wrap(json_value->v));
             m->vtable->deep_delete(
                 m->map,
                 ^ void(void *key) {
                     free(key);
                 }, ^ void(void *value) {
-                    Json_delete_structure(value);
+                    JsonValue_delete_recur(value);
                 }
             );
             break;
         }
     }
-    Json_delete_obj(json_value);
+    JsonValue_delete(json_value);
 }
 
 
-void Json_delete_obj(JsonValue *json_value) {
+void JsonValue_delete(JsonValue *json_value) {
     free(json_value);
 }
 
