@@ -62,6 +62,7 @@ void JsonValue_delete_recur(JsonValue *json_value) {
                     JsonValue_delete_recur(value);
                 }
             );
+            free(m);
             break;
         }
     }

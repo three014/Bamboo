@@ -7,7 +7,6 @@
 #include <stdint.h>
 
 typedef struct __Json_Value_To_Object_Template JsonTemplate;
-
 typedef struct __Json_Value_Struct JsonValue;
 
 enum JsonParseError {
@@ -44,6 +43,7 @@ Result *Json_from_str(const char *str);
  * Returns a Result with the format:
  *
  * Result<ObjWrap<Vec<T> *>, ObjWrap<enum JsonDeserializeError>>
+ * where T: char * | int32_t | bool | [custom_struct_type] * | Vec * | Map *
  */
 Result *Json_to_vec(const JsonValue *json, const JsonTemplate *value_template);
 
@@ -66,7 +66,7 @@ Result *Json_to_vec(const JsonValue *json, const JsonTemplate *value_template);
  *
  * Returns a Result with the format:
  *
- * Result<ObjWrap<Map<char *, V *>, ObjWrap<enum JsonDeserializeError>>
+ * Result<ObjWrap<Map<char *, V>, ObjWrap<enum JsonDeserializeError>>
  * where V: char * | int32_t | bool | [custom_struct_type] * | Vec * | Map *
  */
 Result *Json_to_map(const JsonValue *json, const JsonTemplate *value_template);
@@ -80,6 +80,36 @@ Result *Json_to_map(const JsonValue *json, const JsonTemplate *value_template);
  * If the JsonValue 
  */
 Result *Json_to_struct(const JsonValue *json, const JsonTemplate *struct_template);
+
+
+JsonTemplate *JT_str();
+JsonTemplate *JT_num();
+JsonTemplate *JT_bool();
+JsonTemplate *JT_vec(JsonTemplate *value_template);
+JsonTemplate *JT_map(JsonTemplate *value_template);
+JsonTemplate *JT_struct(JsonTemplate *field_template, ...);
+
+/**
+ * Special-case JsonTemplate that accepts a string for a key along with
+ * a JsonTemplate for the value.
+ *
+ * Can only be used in the struct template, JT_struct(). Passing in a 
+ * template created with this function into the vec or map template functions
+ * results in a null pointer, and will not free the passed-in template.
+ */
+JsonTemplate *JT_kv(const char *key, JsonTemplate *value_template);
+
+/**
+ * Deletes and frees the memory for a JsonTemplate.
+ */
+void JT_delete(JsonTemplate *json_template);
+
+/**
+ * Deletes and frees the memory for a JsonTemplate,
+ * but also recursively frees the memory for JsonTemplates 
+ * that were associated with the passed-in template.
+ */
+void JT_delete_r(JsonTemplate *json_template);
 
 
 
@@ -126,6 +156,12 @@ Result *Json_obj_view(JsonValue *json, const char *field_name);
  *     where T: char * | int32_t | bool | JsonValue *
  */
 Result *Json_arr_view(JsonValue *json, size_t index);
+
+
+
+Result *Json_view(JsonValue *json, const char *pointer);
+
+
 
 
 
