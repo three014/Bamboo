@@ -26,21 +26,21 @@ typedef struct __Set_VTable_Struct
 {
     // Core Set Function. 
     // Returns an iterator with all elements in "set" or "other_set".
-    IteratorVTable (*union_of)(const void *set, const void *other_set);
+    Iterator (*union_of)(const void *set, const void *other_set);
 
     // Core Set Function. 
     // Returns an iterator with all elements found in "set" and "other_set".
-    IteratorVTable (*intersection_of)(const void *set, const void *other_set);
+    Iterator (*intersection_of)(const void *set, const void *other_set);
 
     // Core Set Function.
     // Returns an iterator with all elements found in "set" and "other_set", 
     // but not including elements found in both sets.
-    IteratorVTable (*difference_of)(const void *set, const void *other_set);
+    Iterator (*difference_of)(const void *set, const void *other_set);
 
     // Core Set Function.
     // Returns an iterator of the set, specified with an option to delete the 
     // set after running an Iter function on the iterator.
-    IteratorVTable (*iter)(void *set, bool delete_collection_after_iter);
+    Iterator (*iter)(void *set, bool delete_collection_after_iter);
 
     // Returns whether there are no items in the set.
     bool (*empty)(const void *set);

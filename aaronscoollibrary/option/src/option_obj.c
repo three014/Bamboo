@@ -24,6 +24,7 @@ Option_obj *Option_obj_empty()
 { 
     Option_obj *ret = malloc(sizeof *ret); 
     ret->some = false;
+    ret->item = Obj_from_u32(0);
     return ret; 
 } 
 
@@ -34,7 +35,11 @@ void Option_obj_delete(Option_obj *self)
 
 Option_obj *Option_obj_clone(Option_obj *self) 
 { 
-    return Option_obj_of(self->item); 
+    if (Option_obj_is_some(self)) {
+        return Option_obj_of(self->item); 
+    } else {
+        return Option_obj_empty();
+    }
 } 
 
 bool Option_obj_is_some(Option_obj *self) 
@@ -62,9 +67,10 @@ Option_obj *Option_obj_take(Option_obj *self)
     { 
         return Option_obj_empty(); 
     } 
+    ObjWrap ret = self->item;
     self->item = Obj_from_u32(0); 
     self->some = false; 
-    return Option_obj_of(self->item); 
+    return Option_obj_of(ret); 
 } 
 
 bool Option_obj_insert(Option_obj *self, ObjWrap item) 

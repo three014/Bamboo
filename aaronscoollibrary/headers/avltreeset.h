@@ -24,7 +24,7 @@ bool            AvlTreeSet_contains(const AvlTreeSet *self, const void *item);
 bool            AvlTreeSet_insert(const AvlTreeSet *self, void *data);
 Option          *AvlTreeSet_remove(const AvlTreeSet *self, const void *item);
 void            AvlTreeSet_delete(AvlTreeSet **self);
-IteratorVTable  AvlTreeSet_iter(AvlTreeSet *self, bool delete_collection_after_iter);
+Iterator        AvlTreeSet_iter(AvlTreeSet *self, bool delete_collection_after_iter);
 Set             AvlTreeSet_as_set(AvlTreeSet *self);
 
 #endif

@@ -3,8 +3,10 @@
 #include "../interface/src/object/object_p.h"
 #include "option/option.h"
 #include "option/option_obj.h"
+#include "vector/vector.h"
 
 #include <stddef.h>
+#include <stdio.h>
 #include <stdlib.h>
 
 
@@ -22,7 +24,6 @@ struct __Vector_Improved_Struct {
 typedef struct __Vector_Improved_Iterator {
     struct __Vector_Improved_Struct *vec;
     size_t index;
-    const void *view;
 } VecIter;
 
 
@@ -121,32 +122,51 @@ bool Vec_empty(Vec *self) {
     return (Vec_length(self) == 0);
 }
 
+void Vec_clear(Vec *self, void (^delete_value_func)(void *item)) {
+    if (delete_value_func != NULL) {
+        Iter_for_each_obj(Vec_iter(self, false), ^ void (ObjWrap item) {
+            delete_value_func(Obj_to_ptr(item));
+        });
+    }
+    self->length = 0;
+}
+
+void Vec_deep_delete(Vec *self, void (^delete_value_func)(void *item)) {
+    Vec_clear(self, delete_value_func);
+    Vec_delete(&self);
+}
+
 
 // -------------- Vec Iterator stuff -------------------------------------- //
 
-Option *VecIter_next(void *self_as_void_ptr) {
+Option_obj *VecIter_next(void *self_as_void_ptr) {
     VecIter *self = self_as_void_ptr;
-    Option *ret = Option_of(NULL);
+    Option_obj *ret = Option_obj_empty();
     if (self->vec->length == 0) {
         return ret;
     }
     if (self->index < self->vec->length) {
-        self->view = ObjectInternal_to_view(&self->vec->arr[self->index]);
-        Option_insert(ret, (void *) self->view);
+        Option_obj_insert(ret, ObjectInternal_to_wrap(self->vec->arr[self->index]));
         self->index++;
+        // if (self->vec->arr[self->index - 1].is_ptr) {
+        //     void *test = Obj_to_ptr(ObjectInternal_to_wrap(self->vec->arr[self->index - 1]));
+        //     printf("inside VecIter_next, checking ptr: %p\n", test);
+        // }
     }
+
+    // printf("still inside VecIter_next, checking if opt is some at end of function: %d\n", Option_obj_is_some(ret));
     return ret;
 }
 
-Option *VecIterRev_next(void *self_as_void_ptr) {
+Option_obj *VecIterRev_next(void *self_as_void_ptr) {
     VecIter *self = self_as_void_ptr;
-    Option *ret = Option_of(NULL);
+    Option_obj *ret = Option_obj_empty();
     if (self->vec->length == 0) {
         return ret;
     }
     if (self->vec->length - 1 - self->index < self->vec->length) {
-        self->view = ObjectInternal_to_view(&self->vec->arr[self->vec->length - 1 - self->index]);
-        Option_insert(ret, (void *) self->view);
+        ObjWrap item = ObjectInternal_to_wrap(self->vec->arr[self->vec->length - 1 - self->index]);
+        Option_obj_insert(ret, item);
         self->index++;
     }
     return ret;
@@ -157,7 +177,6 @@ void *Vec_into_iter(void *self_as_void_ptr) {
     VecIter *iter = malloc(sizeof *iter);
     iter->index = 0; 
     iter->vec = self;
-    iter->view = NULL;
     return iter;
 }
 
@@ -170,25 +189,57 @@ void VecIter_delete(void *self_as_void_ptr, bool delete_collection) {
     free(self);
 }
 
-IteratorVTable Vec_iter(Vec *self, bool delete_collection_after_iter) {
-    IteratorVTable table;
-    table.iterable_object = Vec_into_iter(self);
-    table.next = ^ Option *(void *self_as_void_ptr) { 
-        return VecIter_next(self_as_void_ptr); 
+static const IteratorVTable Vec_iter_vtable = {
+    .delete_iterable_obj = ^ void (void *self_as_void_ptr, bool delete_collection) {
+        VecIter_delete(self_as_void_ptr, delete_collection);
+    },
+    .next = ^ Option_obj *(void *self_as_void_ptr) {
+        return VecIter_next(self_as_void_ptr);
+    }
+};
+
+Iterator Vec_iter(Vec *self, bool delete_collection_after_iter) {
+    return (Iterator) {
+        .vtable = Vec_iter_vtable,
+        .delete_collection_after_iter = delete_collection_after_iter,
+        .iterable_obj = Vec_into_iter(self)
     };
-    table.delete_iter = VecIter_delete;
-    table.delete_collection_after_iter = delete_collection_after_iter;
-    return table;
 }
 
-IteratorVTable Vec_iter_reverse(Vec *self, bool delete_collection_after_iter) {
-    IteratorVTable table;
-    table.iterable_object = Vec_into_iter(self);
-    table.next = ^ Option *(void *self_as_void_ptr) { 
-        return VecIterRev_next(self_as_void_ptr); 
+Iterator Vec_iter_reverse(Vec *self, bool delete_collection_after_iter) {
+    return (Iterator) {
+        .vtable = (IteratorVTable) {
+            .next = ^ Option_obj *(void *self_as_void_ptr) {
+                return VecIterRev_next(self_as_void_ptr);
+            },
+            .delete_iterable_obj = ^ void (void *self_as_void_ptr, bool delete_collection) {
+                VecIter_delete(self_as_void_ptr, delete_collection);
+            }
+        },
+        .delete_collection_after_iter = delete_collection_after_iter,
+        .iterable_obj = Vec_into_iter(self)
     };
-    table.delete_iter = VecIter_delete;
-    table.delete_collection_after_iter = delete_collection_after_iter;
-    return table; 
 } 
 
+// ----------- Vec Constructor stuff ------------------------------------------- //
+
+bool _vec_constructor_push(void *collection, ObjWrap item) { return Vec_push(collection, item); }
+
+static const ConstructorVTable Vec_constr_vtable = {
+    .push = _vec_constructor_push
+};
+
+
+Constructor Vec_constr() {
+    return (Constructor) {
+        .collection = Vec_new(),
+        .vtable = &Vec_constr_vtable
+    };
+}
+
+Constructor Vec_constr_with_capacity(size_t capacity) {
+    return (Constructor) {
+        .collection = Vec_with_capacity(capacity),
+        .vtable = &Vec_constr_vtable
+    };
+}

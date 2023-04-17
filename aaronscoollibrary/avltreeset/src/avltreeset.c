@@ -187,9 +187,9 @@ bool AvlTreeSet_insert(const AvlTreeSet *self, void *item)
 
     if (inserted)
     {
-        Iter_for_each(Vec_iter_reverse(prev_node_ptrs, true), ^ void (void *item) 
+        Iter_for_each_obj(Vec_iter_reverse(prev_node_ptrs, true), ^ void (ObjWrap item) 
         {
-            AvlNodeT *node = item;
+            AvlNodeT *node = Obj_to_ptr(item);
             AvlNodeT_update_height(node);
             AvlNodeT_rebalance(node);
         });
@@ -308,17 +308,17 @@ Option *_remove_nodeT_from_treeT(Vec *prev_node_trees, Option *target_tree_opt)
             }
 
             // Update node heights, rebalance
-            Iter_for_each(Vec_iter_reverse(target_to_largest_left, true), ^ void (void *tree_ptr)
+            Iter_for_each_obj(Vec_iter_reverse(target_to_largest_left, true), ^ void (ObjWrap tree_ptr)
             {
-                AvlTreeT *tree = tree_ptr;
+                AvlTreeT *tree = Obj_to_ptr(tree_ptr);
                 AvlNodeT *node = Option_get(Option_clone(tree->avl_node));
                 AvlNodeT_update_height(node);
                 AvlNodeT_rebalance(node);
             });
         }
-        Iter_for_each(Vec_iter_reverse(prev_node_trees, false), ^ void (void *tree_ptr) 
+        Iter_for_each_obj(Vec_iter_reverse(prev_node_trees, false), ^ void (ObjWrap tree_ptr) 
         {
-            AvlTreeT *tree = tree_ptr;
+            AvlTreeT *tree = Obj_to_ptr(tree_ptr);
             AvlNodeT *node = Option_get(Option_clone(tree->avl_node));
             AvlNodeT_update_height(node);
             AvlNodeT_rebalance(node);
@@ -361,21 +361,24 @@ Option *AvlTreeSet_remove(const AvlTreeSet *self, const void *item)
     return removed_item;
 }
 
-bool AvlTreeSet_equal(AvlTreeSet *self, AvlTreeSet *other)
-{
-    __block bool was_different = false;
-    Iter_for_each_zip(AvlTreeSet_iter(self, false), AvlTreeSet_iter(other, false),
-            ^ void (void *item1, void *item2)
-    {
-        Ordering ord = self->table->cmp(item1, item2);
-        if (ord != Equal)
-        {
-            was_different = true;
-        }
-    });
+// bool AvlTreeSet_equal(AvlTreeSet *self, AvlTreeSet *other)
+// {
+//     __block bool was_different = false;
+//     Iter_for_each_zip(AvlTreeSet_iter(self, false), AvlTreeSet_iter(other, false),
+//             ^ void (ObjWrap item1, ObjWrap item2)
+//     {
+//         size_t item1_hack = Obj_to_size(item1);
+//         size_t item2_hack = Obj_to_size(item2);
+//         Ordering ord = self->table->cmp(&item1_hack, &item2_hack);
+//         if (ord != Equal)
+//         {
+//             was_different = true;
+//         }
+//     });
+//
+//     return !was_different;
+// }
 
-    return !was_different;
-}
 //
 // bool AvlTreeSetConstr_push(void *tree_set, void *item)
 // {
@@ -558,7 +561,7 @@ bool AvlNodeT_rotate_left(AvlNodeT *self)
 
 // ---- Iterator ---- //
 
-Option *AvlTreeSetIter_next(void *self_as_void_ptr)
+Option_obj *AvlTreeSetIter_next(void *self_as_void_ptr)
 {
     AvlTreeSetIter *self = self_as_void_ptr;
     while (Option_is_some(self->curr_tree->avl_node))
@@ -575,23 +578,12 @@ Option *AvlTreeSetIter_next(void *self_as_void_ptr)
         AvlNodeT *popped_node = Obj_to_ptr(Option_obj_get(pop));
         self->curr_tree = popped_node->right;
         // printf("Right before leaving AvlTreeSetIter_next: data = %p\n", popped_node->data);
-        return Option_of(popped_node);
+        return Option_obj_of(Obj_from_ptr(popped_node->data));
     }
     else
     {
-        return Option_of(NULL);
+        return Option_obj_empty();
     }
-}
-
-Option *AvlTreeSetIter_next_node_data(void *self_as_void_ptr)
-{
-    return Option_map(AvlTreeSetIter_next(self_as_void_ptr), 
-            ^ Option *(void *node) 
-    { 
-        AvlNodeT *avl_node = node;
-        // printf("Inside closure of AvlTreeSetIter_next_node_data: data = %p\n", avl_node->data);
-        return Option_of(avl_node->data); 
-    });
 }
 
 void *AvlTreeSetIter_from(AvlTreeSet *self)
@@ -614,40 +606,36 @@ void AvlTreeSetIter_delete(void *self_as_void_ptr, bool delete_collection)
     free(self);
 }
 
-IteratorVTable AvlTreeSet_iter(AvlTreeSet *self, bool delete_collection_after_iter)
+static const IteratorVTable AvlTreeSet_iter_vtable = {
+    .next = ^ Option_obj *(void *self) {
+        return AvlTreeSetIter_next(self);
+    },
+    .delete_iterable_obj = ^ void (void *self, bool delete_collection) {
+        AvlTreeSetIter_delete(self, delete_collection);
+    }
+};
+
+Iterator AvlTreeSet_iter(AvlTreeSet *self, bool delete_collection_after_iter)
 {
-    IteratorVTable table;
-    table.iterable_object = AvlTreeSetIter_from(self);
-    table.next = ^ Option *(void *self_as_void_ptr) {
-        return AvlTreeSetIter_next_node_data(self_as_void_ptr);
+    return (Iterator) {
+        .vtable = AvlTreeSet_iter_vtable,
+        .delete_collection_after_iter = delete_collection_after_iter,
+        .iterable_obj = AvlTreeSetIter_from(self)
     };
-    table.delete_iter = AvlTreeSetIter_delete;
-    table.delete_collection_after_iter = delete_collection_after_iter;
-    return table;
 }
 
-IteratorVTable *AvlTreeSet_node_iter(AvlTreeSet *self)
-{
-    IteratorVTable *table = malloc(sizeof *table);
-    table->iterable_object = AvlTreeSetIter_from(self);
-    table->next = ^Option *(void *self_as_void_ptr) {
-        return AvlTreeSetIter_next(self_as_void_ptr);
-    };
-    table->delete_iter = AvlTreeSetIter_delete;
-    return table;
-}
 
 
 // ---- Set wrapper functions ---- //
 
 bool _avl_set_contains(const void *set, const void *item) { return AvlTreeSet_contains(set, item); }
-IteratorVTable _avl_set_iter(void *set, bool delete_collection_after_iter) 
+Iterator _avl_set_iter(void *set, bool delete_collection_after_iter) 
 { 
     return AvlTreeSet_iter(set, delete_collection_after_iter); 
 }
 bool _avl_set_push(void *set, void *item) { return AvlTreeSet_insert(set, item); }
 bool _avl_set_empty(const void *set) { return AvlTreeSet_is_empty(set); }
-bool _avl_set_equal(void *set, void *other) { return AvlTreeSet_equal(set, other); }
+// bool _avl_set_equal(void *set, void *other) { return AvlTreeSet_equal(set, other); }
 void _avl_set_delete(void *set) { AvlTreeSet_delete((AvlTreeSet **) &set); }
 Option *_avl_set_remove(void *set, const void *item) { return AvlTreeSet_remove(set, item); }
 
@@ -657,7 +645,7 @@ static const SetVTable AvlTreeSet_set_vtable = {
     .push = _avl_set_push,
     .empty = _avl_set_empty,
     .difference_of = NULL,
-    .equal = _avl_set_equal,
+    // .equal = _avl_set_equal,
     .delete = _avl_set_delete,
     .intersection_of = NULL,
     .pop = NULL,

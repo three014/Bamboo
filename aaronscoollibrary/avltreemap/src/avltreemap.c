@@ -17,7 +17,7 @@ AvlTreeKV *AvlTreeKV_new();
 AvlNodeKV *AvlNodeKV_new(ObjectInternal key, ObjectInternal value);
 void _delete_treeKV(AvlTreeKV *tree);
 void _delete_nodeKV(AvlNodeKV *node);
-Option_obj *_remove_node_from_tree(Vec *prev_tree_ptrs, Option *target_tree_opt);
+Option_obj *_remove_node_from_tree(Vec *prev_tree_ptrs, Option *target_tree_opt, uint8_t *size_decreaser);
 Option *_get_node_to_remove(const OrderingVTable *ord, Vec *prev_tree_ptrs, const void *key_view, AvlTreeKV *start_tree);
 size_t AvlNodeKV_left_height(const AvlNodeKV *self);
 size_t AvlNodeKV_right_height(const AvlNodeKV *self);
@@ -43,6 +43,7 @@ struct __AvlNodeKV_Struct {
 struct __AvlTreeMap_Struct {
     AvlTreeKV *root;    
     const OrderingVTable *ord;
+    size_t size;
 };
 
 typedef struct __AvlTreeMapIter_Struct {
@@ -72,11 +73,16 @@ AvlNodeKV *AvlNodeKV_new(ObjectInternal key, ObjectInternal value) {
 // ---- AvlTreeMap ---- //
 
 AvlTreeMap *AvlTreeMap_new(const OrderingVTable *table) {
-    AvlTreeMap *set = malloc(sizeof *set);
-    set->root = AvlTreeKV_new();
-    set->ord = table;
+    AvlTreeMap *map = malloc(sizeof *map);
+    map->root = AvlTreeKV_new();
+    map->ord = table;
+    map->size = 0;
 
-    return set;
+    return map;
+}
+
+size_t AvlTreeMap_size(const AvlTreeMap *self) {
+    return self->size;
 }
 
 void _delete_nodeKV(AvlNodeKV *node) {
@@ -158,11 +164,12 @@ bool AvlTreeMap_insert(AvlTreeMap *self, ObjWrap key, ObjWrap value) {
     bool inserted = Option_insert(curr_tree->avl_node, to_insert);
 
     if (inserted) {
-        Iter_for_each(Vec_iter_reverse(prev_node_ptrs, true), ^ void (void *item) {
-            AvlNodeKV *node = item;
+        Iter_for_each_obj(Vec_iter_reverse(prev_node_ptrs, true), ^ void (ObjWrap item) {
+            AvlNodeKV *node = Obj_to_ptr(item);
             AvlNodeKV_update_height(node);
             AvlNodeKV_rebalance(node);
         });
+        self->size++;
         return true;
     }
     else {
@@ -282,7 +289,7 @@ bool AvlTreeMap_contains_key(const AvlTreeMap *self, const ObjWrap key) {
     return false;
 }
 
-Option_obj *_remove_node_from_tree(Vec *prev_tree_ptrs, Option *target_tree_opt) {
+Option_obj *_remove_node_from_tree(Vec *prev_tree_ptrs, Option *target_tree_opt, uint8_t *size_decreaser) {
     Option_obj *return_data = Option_obj_empty();
     if (Option_is_some(target_tree_opt)) {
         // Format: Option<ObjWrap<V>>
@@ -365,19 +372,20 @@ Option_obj *_remove_node_from_tree(Vec *prev_tree_ptrs, Option *target_tree_opt)
             }
 
             // Update node heights, rebalance
-            Iter_for_each(Vec_iter_reverse(target_to_largest_left, true), ^ void (void *tree_ptr) {
-                AvlTreeKV *tree = tree_ptr;
+            Iter_for_each_obj(Vec_iter_reverse(target_to_largest_left, true), ^ void (ObjWrap tree_ptr) {
+                AvlTreeKV *tree = Obj_to_ptr(tree_ptr);
                 AvlNodeKV *node = Option_get(Option_clone(tree->avl_node));
                 AvlNodeKV_update_height(node);
                 AvlNodeKV_rebalance(node);
             });
         }
-        Iter_for_each(Vec_iter_reverse(prev_tree_ptrs, false), ^ void (void *tree_ptr) {
-            AvlTreeKV *tree = tree_ptr;
+        Iter_for_each_obj(Vec_iter_reverse(prev_tree_ptrs, false), ^ void (ObjWrap tree_ptr) {
+            AvlTreeKV *tree = Obj_to_ptr(tree_ptr);
             AvlNodeKV *node = Option_get(Option_clone(tree->avl_node));
             AvlNodeKV_update_height(node);
             AvlNodeKV_rebalance(node);
         });
+        *size_decreaser = 1;
     }
     return return_data;
 }
@@ -418,10 +426,30 @@ Option_obj *AvlTreeMap_remove_obj(AvlTreeMap *self, const ObjWrap key) {
     Option *target_tree = _get_node_to_remove(self->ord, prev_tree_ptrs, key_view, self->root);
     
     // Format: Option<ObjWrap<V>>
-    Option_obj *removed_item = _remove_node_from_tree(prev_tree_ptrs, target_tree);
+    uint8_t size_decreaser = 0;
+    Option_obj *removed_item = _remove_node_from_tree(prev_tree_ptrs, target_tree, &size_decreaser);
     Vec_delete(&prev_tree_ptrs);
+    self->size -= size_decreaser;
 
     return removed_item;
+}
+
+void AvlTreeMap_deep_delete(
+        AvlTreeMap *self, 
+        void (^key_delete_func)(void *key), 
+        void (^value_delete_func)(void *value)
+) {
+    if (value_delete_func != NULL) {
+        Vec *values = Iter_collect(AvlTreeMap_iter_values(self, false), Vec_constr_with_capacity(AvlTreeMap_size(self)));
+        Vec_deep_delete(values, value_delete_func);    
+    }
+    
+    if (key_delete_func != NULL) {
+        Vec *keys = Iter_collect(AvlTreeMap_iter_keys(self, false), Vec_constr_with_capacity(AvlTreeMap_size(self)));
+        Vec_deep_delete(keys, key_delete_func);
+    }
+
+    AvlTreeMap_delete(&self);
 }
 
 // ---- AvlNodeKV ---- //
@@ -573,31 +601,6 @@ bool AvlNodeKV_rotate_left(AvlNodeKV *self) {
 
 // ---- Iterator ---- //
 
-Option *AvlTreeMapIter_next(void *self_as_void_ptr) {
-    AvlTreeMapIter *self = self_as_void_ptr;
-    while (Option_is_some(self->curr_tree->avl_node)) {
-        Option *as_ref = Option_clone(self->curr_tree->avl_node);
-        AvlNodeKV *curr_node = Option_get(as_ref);
-        Vec_push(self->prev_nodes, Obj_from_ptr(curr_node));
-        self->curr_tree = curr_node->left;
-    }
-
-    if (!Vec_empty(self->prev_nodes)) {
-        Option_obj *pop = Vec_pop(self->prev_nodes);
-        AvlNodeKV *popped_node = Obj_to_ptr(Option_obj_get(pop));
-        self->curr_tree = popped_node->right;
-        self->curr_view = (MapViewKV) {
-            .key = ObjectInternal_to_view(&popped_node->key),
-            .value = ObjectInternal_to_view(&popped_node->value)
-        };
-        // printf("Right before leaving AvlTreeSetIter_next: data = %p\n", popped_node->data);
-        return Option_of(&self->curr_view);
-    }
-    else {
-        return Option_of(NULL);
-    }
-}
-
 void *AvlTreeMapIter_from(AvlTreeMap *self) {
     AvlTreeMapIter *iter = malloc(sizeof *iter);
     iter->curr_tree = self->root;
@@ -615,53 +618,93 @@ void AvlTreeMapIter_delete(void *self_as_void_ptr, bool delete_collection) {
     free(self);
 }
 
-IteratorVTable AvlTreeMap_iter(AvlTreeMap *self, bool delete_collection_after_iter) {
-    IteratorVTable table;
-    table.iterable_object = AvlTreeMapIter_from(self);
-    table.next = ^ Option *(void *self_as_void_ptr) {
+Option_obj *AvlTreeMapIter_next(void *self_as_void_ptr) {
+    AvlTreeMapIter *self = self_as_void_ptr;
+    while (Option_is_some(self->curr_tree->avl_node)) {
+        Option *as_ref = Option_clone(self->curr_tree->avl_node);
+        AvlNodeKV *curr_node = Option_get(as_ref);
+        Vec_push(self->prev_nodes, Obj_from_ptr(curr_node));
+        self->curr_tree = curr_node->left;
+    }
+
+    if (!Vec_empty(self->prev_nodes)) {
+        Option_obj *pop = Vec_pop(self->prev_nodes);
+        AvlNodeKV *popped_node = Obj_to_ptr(Option_obj_get(pop));
+        self->curr_tree = popped_node->right;
+        self->curr_view.key = ObjectInternal_to_wrap(popped_node->key);
+        self->curr_view.value = ObjectInternal_to_wrap(popped_node->value);
+        // printf("Right before leaving AvlTreeSetIter_next: data = %p\n", popped_node->data);
+        return Option_obj_of(Obj_from_ptr(&self->curr_view));
+    }
+    else {
+        return Option_obj_empty();
+    }
+}
+
+static const struct __Obj_Iterator_VTable_Struct AvlTreeMap_obj_iter_vtable = {
+    .next = ^ Option_obj *(void *self_as_void_ptr) {
         return AvlTreeMapIter_next(self_as_void_ptr);
+    },
+    .delete_iterable_obj = ^ void (void *self_as_void_ptr, bool delete_collection) {
+        AvlTreeMapIter_delete(self_as_void_ptr, delete_collection);
+    }
+};
+
+Iterator AvlTreeMap_iter(AvlTreeMap *self, bool delete_collection_after_iter) {
+    return (Iterator) {
+        .iterable_obj = AvlTreeMapIter_from(self),
+        .delete_collection_after_iter = delete_collection_after_iter,
+        .vtable = AvlTreeMap_obj_iter_vtable
     };
-    table.delete_iter = AvlTreeMapIter_delete;
-    table.delete_collection_after_iter = delete_collection_after_iter;
-    return table;
 }
 
-IteratorVTable AvlTreeMap_iter_keys(AvlTreeMap *self, bool delete_collection_after_iter) {
-    IteratorVTable table;
-    table.iterable_object = AvlTreeMapIter_from(self);
-    table.next = ^ Option *(void *self_as_void_ptr) {
-        return Option_map(AvlTreeMapIter_next(self_as_void_ptr), ^ Option *(void *item) {
-            MapViewKV *view = item;
-            return Option_of((void *) view->key); // Casting to (void *) to remove warning on const 
-        });
+Iterator AvlTreeMap_iter_keys(AvlTreeMap *self, bool delete_collection_after_iter) {
+    return (Iterator) {
+        .iterable_obj = AvlTreeMapIter_from(self),
+        .delete_collection_after_iter = delete_collection_after_iter,
+        .vtable = (IteratorVTable) {
+            .next = ^ Option_obj *(void *self_as_void_ptr) {
+                Option_obj *next_item = AvlTreeMapIter_next(self_as_void_ptr);
+                if (Option_obj_is_some(next_item)) {
+                    MapViewKV *view = Obj_to_ptr(Option_obj_get(Option_obj_take(next_item)));
+                    Option_obj_insert(next_item, view->key);
+                } 
+                return next_item;
+            },
+            .delete_iterable_obj = ^ void (void *self_as_void_ptr, bool delete_collection) {
+                AvlTreeMapIter_delete(self_as_void_ptr, delete_collection);
+            }
+        }    
     };
-    table.delete_iter = AvlTreeMapIter_delete;
-    table.delete_collection_after_iter = delete_collection_after_iter;
-    return table;
-
 }
 
-IteratorVTable AvlTreeMap_iter_values(AvlTreeMap *self, bool delete_collection_after_iter) {
-    IteratorVTable table;
-    table.iterable_object = AvlTreeMapIter_from(self);
-    table.next = ^ Option *(void *self_as_void_ptr) {
-        return Option_map(AvlTreeMapIter_next(self_as_void_ptr), ^ Option *(void *item) {
-            MapViewKV *view = item;
-            return Option_of((void *) view->value); // Casting to (void *) to remove warning on const 
-        });
+Iterator AvlTreeMap_iter_values(AvlTreeMap *self, bool delete_collection_after_iter) {
+    return (Iterator) {
+        .iterable_obj = AvlTreeMapIter_from(self),
+        .delete_collection_after_iter = delete_collection_after_iter,
+        .vtable = (IteratorVTable) {
+            .next = ^ Option_obj *(void *self_as_void_ptr) {
+                Option_obj *next_item = AvlTreeMapIter_next(self_as_void_ptr);
+                if (Option_obj_is_some(next_item)) {
+                    MapViewKV *view = Obj_to_ptr(Option_obj_get(Option_obj_take(next_item)));
+                    Option_obj_insert(next_item, view->value);
+                } 
+                return next_item;
+            },
+            .delete_iterable_obj = ^ void (void *self_as_void_ptr, bool delete_collection) {
+                AvlTreeMapIter_delete(self_as_void_ptr, delete_collection);
+            }
+        }    
     };
-    table.delete_iter = AvlTreeMapIter_delete;
-    table.delete_collection_after_iter = delete_collection_after_iter;
-    return table;
-
 }
+
 
 
 // ---- Map Wrapper Functions ---- //
 
-IteratorVTable _avl_map_iter(void *map, bool delete_collection_after_iter) { return AvlTreeMap_iter(map, delete_collection_after_iter); }
-IteratorVTable _avl_map_iter_keys(void *map, bool delete_collection_after_iter) { return AvlTreeMap_iter_keys(map, delete_collection_after_iter); }
-IteratorVTable _avl_map_iter_values(void *map, bool delete_collection_after_iter) { return AvlTreeMap_iter_values(map, delete_collection_after_iter); }
+Iterator _avl_map_iter(void *map, bool delete_collection_after_iter) { return AvlTreeMap_iter(map, delete_collection_after_iter); }
+Iterator _avl_map_iter_keys(void *map, bool delete_collection_after_iter) { return AvlTreeMap_iter_keys(map, delete_collection_after_iter); }
+Iterator _avl_map_iter_values(void *map, bool delete_collection_after_iter) { return AvlTreeMap_iter_values(map, delete_collection_after_iter); }
 bool _avl_map_push(void *map, ObjWrap key, ObjWrap value) { return AvlTreeMap_insert(map, key, value); }
 Option_obj *_avl_map_view_obj(const void *map, ObjWrap key) { return AvlTreeMap_view_obj(map, key); }
 Option_obj *_avl_map_remove_obj(void *map, ObjWrap key) { return AvlTreeMap_remove_obj(map, key); }
@@ -669,6 +712,7 @@ Option_obj *_avl_map_replace_obj(void *map, ObjWrap key, ObjWrap value) { return
 bool _avl_map_empty(const void *map) { return AvlTreeMap_is_empty(map); }
 bool _avl_map_contains_key(const void *map, ObjWrap key) { return AvlTreeMap_contains_key(map, key); }
 void _avl_map_delete_map(void *map) { return AvlTreeMap_delete((AvlTreeMap **) &map); }
+void _avl_map_deep_delete(void *map, void (^free_key_func)(void *key), void (^free_value_func)(void *value)) { AvlTreeMap_deep_delete(map, free_key_func, free_value_func); }
 
 static const MapVTable AvlTreeMap_map_vtable = {
     .contains_key = _avl_map_contains_key,

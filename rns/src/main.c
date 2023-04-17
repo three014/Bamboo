@@ -46,8 +46,8 @@ void string_test() {
     Vec_push(str_vec, Obj_from_str(s));
     Vec_push(str_vec, Obj_from_str(g));
 
-    Iter_for_each(Vec_iter(str_vec, false), ^ void (void *item) {
-        char *str = item;
+    Iter_for_each_obj(Vec_iter(str_vec, false), ^ void (ObjWrap item) {
+        char *str = Obj_to_str(item);
         printf("char *str = %p\n", str);
         printf("%s\n", str);
 
@@ -115,31 +115,38 @@ void vec_test() {
     Vec_push(test_vec, Obj_from_ptr(t2));
     Vec_push(test_vec, Obj_from_ptr(t3));
 
-    IteratorVTable mapped_vec_iter = Iter_map(Vec_iter(test_vec, false), ^ void *(void *item) {
+    void *test_ptr = Obj_to_ptr(Obj_from_ptr(t));
+    printf("t: %p\n", t);
+    printf("Testing Obj_to_ptr(Obj_from_ptr(t)): %p\n", test_ptr);
+
+    void *test_ptr1 = Obj_to_ptr(Obj_from_ptr(t1));
+    printf("t1: %p\n", t1);
+    printf("Testing Obj_to_ptr(Obj_from_ptr(t1)): %p\n", test_ptr1);
+
+
+    Iterator mapped_vec_iter = Iter_map(Vec_iter(test_vec, false), ^ ObjWrap (ObjWrap item) {
         char *str = malloc(64);
-        // char str[64];
-        Test *test = item;
+        Test *test = Obj_to_ptr(item);
+        printf("test ptr: %p\n", test);
+        memset(str, 0, 64);
         sprintf(str, "Test: x = %d, y = %c, z = %lf\n", test->x, test->y, test->z);
         str[63] = '\0';
-        return str;
+        return Obj_from_str(str);
     });
    
-    Iter_for_each(mapped_vec_iter, ^ void (void *item) {
-        char *str = item;
+    Iter_for_each_obj(mapped_vec_iter, ^ void (ObjWrap item) {
+        char *str = Obj_to_str(item);
         printf("%s\n", str);
         free(str);
     });
 
-    // OrderingVTable test_ord = {
-    //     .cmp = cmp_test,
-    // };
+    OrderingVTable test_ord = {
+        .cmp = cmp_test,
+    };
 
-    // Vec *vec2 = Iter_collect(Vec_iter(test_vec, false), Vec_constr());
-    // AvlTreeSet *tree = Iter_collect(Vec_iter(test_vec, false), AvlTreeSet_constr(&test_ord));
+    Vec *vec2 = Iter_collect(Vec_iter(test_vec, false), Vec_constr());
 
-    
-    // AvlTreeSet_delete(&tree);
-    // Vec_delete(&vec2);
+    Vec_delete(&vec2);
 }
 
 void avltree_test() {
@@ -151,8 +158,8 @@ void avltree_test() {
     AvlTreeSet_insert(tree, x);
     AvlTreeSet_insert(tree, z);
 
-    Iter_for_each(AvlTreeSet_iter(tree, false), ^ void (void *item) {
-        char *str = item;
+    Iter_for_each_obj(AvlTreeSet_iter(tree, false), ^ void (ObjWrap item) {
+        char *str = Obj_to_str(item);
         printf("%s\n", str);
     });
 
@@ -186,16 +193,10 @@ void avltree_test() {
         printf("Inserted 7!\n");
     }
 
-    void (^print)(const uint64_t, void *) = ^ void (const uint64_t index, void *item) {
-        printf("%lu, %d\n", index, *(int32_t *) item);
-    };
-
-    Iter_for_each_enumerate(AvlTreeSet_iter(tree, false), print);
-
     Option_delete(AvlTreeSet_remove(tree, &a));
     Option_delete(AvlTreeSet_remove(tree, &b));
 
-    Iter_for_each_enumerate(AvlTreeSet_iter(tree, true), print);
+    AvlTreeSet_delete(&tree);
 }
 
 
@@ -209,8 +210,8 @@ void vec_test_again() {
         Vec_push(vec, Obj_from_str(tmp));
     }
 
-    Iter_for_each(Vec_iter(vec, false), ^ void (void *item) {
-        char *str = item;
+    Iter_for_each_obj(Vec_iter(vec, false), ^ void (ObjWrap item) {
+        char *str = Obj_to_str(item);
         printf("%s\n", str);
     });
 
@@ -233,8 +234,8 @@ void set_test() {
     set.vtable->push(set.set, whats);
     char *hmm = "hmmm that's kinda odd";
     set.vtable->push(set.set, hmm);
-    Iter_for_each(set.vtable->iter(set.set, false), ^ void (void *item) {
-        char *str = item;
+    Iter_for_each_obj(set.vtable->iter(set.set, false), ^ void (ObjWrap item) {
+        char *str = Obj_to_str(item);
         printf("%s\n", str);
     });
     set.vtable->delete(set.set);
@@ -246,9 +247,9 @@ void avl_tree_map_test() {
     AvlTreeMap_insert(m, Obj_from_i32(20), Obj_from_char('g'));
     AvlTreeMap_insert(m, Obj_from_i32(20), Obj_from_char('f'));
     AvlTreeMap_insert(m, Obj_from_i32(8), Obj_from_char('j'));
-    Iter_for_each(AvlTreeMap_iter(m, false), ^ void (void *item) {
-        MapViewKV *view = item;
-        printf("key: %d, val: %c\n", *(int *) view->key, *(char *) view->value);
+    Iter_for_each_obj(AvlTreeMap_iter(m, false), ^ void (ObjWrap item) {
+        MapViewKV *view = Obj_to_ptr(item);
+        printf("key: %d, val: %c\n", Obj_to_i32(view->key), Obj_to_char(view->value));
     });
     Option_obj *a_opt = AvlTreeMap_remove_obj(m, Obj_from_i32(20));
     if (Option_obj_is_some(a_opt)) {
@@ -261,9 +262,9 @@ void avl_tree_map_test() {
     if (AvlTreeMap_is_empty(m)) {
         printf("treemap is empty\n");
     }
-    Iter_for_each(AvlTreeMap_iter(m, false), ^ void (void *item) {
-        MapViewKV *view = item;
-        printf("key: %d, val: %c\n", *(int *) view->key, *(char *) view->value);
+    Iter_for_each_obj(AvlTreeMap_iter(m, false), ^ void (ObjWrap item) {
+        MapViewKV *view = Obj_to_ptr(item);
+        printf("key: %d, val: %c\n", Obj_to_i32(view->key), Obj_to_char(view->value));
     });
 
     AvlTreeMap_delete(&m);

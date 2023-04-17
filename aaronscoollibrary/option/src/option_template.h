@@ -44,7 +44,11 @@ void Option_##type##_delete(Option_##type *self) \
 } \
 Option_##type *Option_##type##_clone(Option_##type *self) \
 { \
-    return Option_##type##_of(self->item); \
+    if (Option_##type##_is_some(self)) { \
+        return Option_##type##_of(self->item); \
+    } else { \
+        return Option_##type##_empty(); \
+    } \
 } \
 bool Option_##type##_is_some(Option_##type *self) \
 { \

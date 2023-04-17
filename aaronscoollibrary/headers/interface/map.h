@@ -9,9 +9,9 @@
 #include <stdint.h>
 
 typedef struct __Map_VTable_Struct {
-    IteratorVTable (*iter)(void *map, bool delete_collection_after_iter);
-    IteratorVTable (*iter_keys)(void *map, bool delete_collection_after_iter);
-    IteratorVTable (*iter_values)(void *map, bool delete_collection_after_iter);
+    Iterator (*iter)(void *map, bool delete_collection_after_iter);
+    Iterator (*iter_keys)(void *map, bool delete_collection_after_iter);
+    Iterator (*iter_values)(void *map, bool delete_collection_after_iter);
     bool (*push)(void *map, ObjWrap key, ObjWrap value);
     Option_obj *(*view_obj)(const void *map, ObjWrap key);
     Option_obj *(*remove_obj)(void *map, ObjWrap key);
@@ -19,6 +19,8 @@ typedef struct __Map_VTable_Struct {
     bool (*empty)(const void *map);
     bool (*contains_key)(const void *map, ObjWrap key);
     void (*delete_map)(void *map);
+    IteratorVTable (*clear)(void *map);
+    void (*deep_delete)(void *map, void (^free_key_func)(void *item), void (^free_value_func)(void *item));
 } MapVTable;
 
 typedef struct __Map_Struct {
@@ -27,8 +29,8 @@ typedef struct __Map_Struct {
 } Map;
 
 typedef struct __Map_KeyValuePair_Struct {
-    const void *key;
-    const void *value;
+    ObjWrap key;
+    ObjWrap value;
 } MapViewKV;
 
 // Thinking: Get rid of all of this, use Object way to store items
